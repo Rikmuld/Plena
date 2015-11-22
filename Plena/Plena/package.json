@@ -1,0 +1,10 @@
+{
+  "name": "Plena",
+  "version": "0.0.0",
+  "description": "Plena",
+  "main": "app.js",
+  "author": {
+    "name": "rikmu",
+    "email": ""
+  }
+}
