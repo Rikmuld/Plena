@@ -37,11 +37,11 @@ module Plena {
             y = p2;
             if (p5) color = <number[]>p5;
             else color = [1, 1, 1, 1]
-        } else if (typeof p2 == 'number') { 
+        } else if (typeof p2 == 'number') {
             console.log("halloes")
             width = p1;
             height = p2;
-            x = window.innerWidth/2 - width/2;
+            x = window.innerWidth / 2 - width / 2;
             y = window.innerHeight / 2 - height / 2;
             if (p3) color = <number[]>p3;
             else color = [1, 1, 1, 1]
@@ -92,7 +92,7 @@ module Plena {
         looper()
     }
 
-    export function loadSpriteFile(src:string, repeat?:boolean, smooth?:boolean, id?:string):Sprite {
+    export function loadSpriteFile(src: string, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
         if (!id) id = src.split("/").pop().split('.')[0];
         return textureManager.loadSprite(src, id, repeat, smooth);
     }
@@ -102,11 +102,11 @@ module Plena {
         return textureManager.loadImg(src, id, repeat, smooth);
     }
 
-    export function getImg(key: string):Img {
+    export function getImg(key: string): Img {
         return textureManager.getTexture(key);
     }
 
-    export function changeProjection(left: number, bottom:number);
+    export function changeProjection(left: number, bottom: number);
     export function changeProjection(left: number, right: number, bottom: number, top: number);
     export function changeProjection(left: number, right: number, bottom?: number, top?: number) {
         var ortho: Mat4;
@@ -130,7 +130,7 @@ module Plena {
         requestAnimationFrame(looper);
     }
 
-    export function getBasicShader(typ: ShaderType):Shader {
+    export function getBasicShader(typ: ShaderType): Shader {
         switch (typ) {
             case ShaderType.COLOR: return colorShader;
             case ShaderType.TEXTURE: return textureShader;
@@ -158,7 +158,7 @@ module Plena {
         return spriteManager;
     }
 
-    export function createManager():Manager {
+    export function createManager(): Manager {
         return new Manager();
     }
 
@@ -166,7 +166,7 @@ module Plena {
         private shaders = new TreeMap<string, Shader>(STRING_COMPARE);
         private grixs = new DeepTreeMap<string, Grix>(STRING_COMPARE);
 
-        hasShader(shader:string):boolean {
+        hasShader(shader: string): boolean {
             return this.shaders.contains(shader);
         }
 
@@ -174,14 +174,14 @@ module Plena {
             this.shaders.put(shader.getId(), shader);
         }
 
-        getShader(key: string):Shader {
+        getShader(key: string): Shader {
             return this.shaders.apply(key)
         }
 
         addGrix(key: string, grix: Grix);
         addGrix(key: Shader, grix: Grix);
         addGrix(key: string|Shader, grix: Grix) {
-            this.grixs.put((typeof key == "string")?(<string>key):(<Shader>key).getId(), grix);
+            this.grixs.put((typeof key == "string") ? (<string>key) : (<Shader>key).getId(), grix);
         }
 
         render() {
@@ -207,7 +207,7 @@ module GLF {
         gl.clearColor(color[0], color[1], color[2], color[3]);
     }
 
-    export function viewPort(x:number, y:number, width:number, height:number) {
+    export function viewPort(x: number, y: number, width: number, height: number) {
         gl.viewport(x, y, width, height);
     }
 

@@ -14,8 +14,8 @@ class Grix {
     private color: Vec4;
     private isFinal: boolean;
     private childs = new Queue<GrixC>();
-    private width:number;
-    private height:number;
+    private width: number;
+    private height: number;
 
     constructor(customShader?: Shader) {
         this.drawer = new Render();
@@ -35,12 +35,12 @@ class Grix {
     end() {
         this.drawer.end();
     }
-    rect(width:number, height:number) {
+    rect(width: number, height: number) {
         this.drawer.addVertexes(this.getShader(), [0, 0, width, 0, width, height, 0, height]);
         this.drawer.addIndieces([0, 1, 3, 1, 2, 3]);
         this.width = width;
         this.height = height;
-    } 
+    }
     colorV3(color: number[]) {
         color.push(1);
         this.setColor(color);
@@ -67,7 +67,7 @@ class Grix {
         this.texture = texture;
         texture.onLoaded(this.textureLoaded(this));
     }
-    animeFromSprite(sprite: Sprite, ids:string[]|number[]) {
+    animeFromSprite(sprite: Sprite, ids: string[]|number[]) {
 
     }
     addSprite() {
@@ -88,7 +88,7 @@ class Grix {
             ths.drawer.addUVCoords(ths.getShader(), [coord.getXMin(), coord.getYMin(), coord.getXMax(), coord.getYMin(), coord.getXMax(), coord.getYMax(), coord.getXMin(), coord.getYMax()]);
         }
     }
-    getShader():Shader {
+    getShader(): Shader {
         if (!this.customeShader) {
             if (this.texture != null) return Plena.getBasicShader(Plena.ShaderType.TEXTURE);
             else return Plena.getBasicShader(Plena.ShaderType.COLOR);
@@ -100,6 +100,11 @@ class Grix {
     private sXT: number = 1;
     private sYT: number = 1;
     private angle: number = 0;
+    private pmX: number = 0;
+    private pmY: number = 0;
+    private prX: number = 0;
+    private prY: number = 0;
+    private relRotP: boolean = true;
 
     render() {
         var transform = Matrix4.identity();
@@ -108,8 +113,12 @@ class Grix {
 
         if (this.angle != 0) transform = Matrix4.translate(transform, centerX, centerY)
         if (this.xT != 0 || this.yT != 0) transform = Matrix4.translate(transform, this.xT, this.yT);
-        if (this.angle != 0) transform = Matrix4.rotate(transform, this.angle);
-        if (this.angle != 0) transform = Matrix4.translate(transform, -centerX, -centerY)
+        if (this.angle != 0) {
+            transform = Matrix4.translate(transform, !this.relRotP ? this.prX - this.xT - centerX : this.prX * (centerX * 2), !this.relRotP ? this.prY - this.yT - centerY : this.prY * (centerY * 2))
+            transform = Matrix4.rotate(transform, this.angle);
+            transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT + centerX : -this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT + centerY : -this.prY * (centerY * 2))
+            transform = Matrix4.translate(transform, -centerX, -centerY)
+        }
         if (this.sXT != 1 || this.sYT != 1) transform = Matrix4.scale(transform, this.sXT, this.sYT);
 
         var grix = this.grixc(transform, this.color == null ? this.defaultColor : this.color)
@@ -120,8 +129,14 @@ class Grix {
         this.yT += y;
     }
     moveTo(x: number, y: number) {
-        this.xT = x;
-        this.yT = y;
+        this.xT = x - (this.width * this.sXT) * this.pmX;
+        this.yT = y - (this.height * this.sYT) * this.pmY;
+    }
+    moveXTo(x: number) {
+        this.xT = x - (this.width * this.sXT) * this.pmX;
+    }
+    moveYTo(y: number) {
+        this.yT = y - (this.height * this.sYT) * this.pmY;
     }
     scale(x: number, y: number) {
         this.sXT += x;
@@ -156,13 +171,18 @@ class Grix {
     clean() {
         this.xT = 0;
         this.yT = 0;
+        this.prY = 0;
+        this.prX = 0;
+        this.pmY = 0;
+        this.pmX = 0;
         this.sXT = 1;
         this.sYT = 1;
         this.angle = 0;
         this.color = null;
+        this.relRotP = true;
     }
-    private grixc(transform:Mat4, color: Vec4): GrixC {
-        return { color: color, transform:transform};
+    private grixc(transform: Mat4, color: Vec4): GrixC {
+        return { color: color, transform: transform };
     }
     do_render() {
         this.start();
@@ -178,26 +198,26 @@ class Grix {
         this.end();
         this.clean();
     }
-    setPivotRot(x: number, y:number, relative?:boolean) {
+    setPivotRot(x: number, y: number, relative?: boolean) {
         if (typeof relative == "boolean" && relative == false) {
-
+            this.relRotP = false;
+            this.prX = x;
+            this.prY = y;
         } else {
-
-        } 
-    }
-    setPivotMove(x: number, y: number, relative?: boolean) {
-        if (typeof relative == "boolean" && relative == false) {
-
-        } else {
-
+            this.prX = x - 0.5;
+            this.prY = y - 0.5;
+            this.relRotP = true;
         }
     }
-    setPivotScale(x: number, y: number, relative?: boolean) {
-        if (typeof relative == "boolean" && relative == false) {
-
-        } else {
-
-        }
+    setPivotMove(x: number, y: number) {
+        this.pmX = x;
+        this.pmY = y;
+    }
+    getWidth(): number {
+        return this.width * this.sXT;
+    }
+    getHeight(): number {
+        return this.height * this.sYT
     }
 }
 
@@ -259,7 +279,7 @@ class Shader {
         this.matrix = new MatrixHandler(this);
     }
 
-    getId():string {
+    getId(): string {
         return this.id;
     }
 
