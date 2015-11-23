@@ -1,12 +1,11 @@
-//scale rotation move pivots
-//default translations
 //more shapes
+//sprite animations
+//test sprites
 //more draw modes
 var Grix = (function () {
     function Grix(customShader) {
         this.drawer = new Render();
         this.loadedTex = false;
-        this.tempList = new Bag();
         this.defaultColor = [0, 0, 0, 1];
         this.childs = new Queue();
         this.xT = 0;
@@ -71,11 +70,20 @@ var Grix = (function () {
         this.texture = texture;
         texture.onLoaded(this.textureLoaded(this));
     };
-    Grix.prototype.animeFromSprite = function (sprite, ids) {
+    Grix.prototype.animationFromSprite = function (sprite, ids) {
     };
-    Grix.prototype.addSprite = function () {
+    Grix.prototype.addAnimation = function (ids) {
     };
-    Grix.prototype.setSpriteIndex = function () {
+    Grix.prototype.addSprite = function (sprite) {
+        this.texture = sprite;
+        sprite.getBaseImg().onLoaded(this.textureLoaded(this));
+        this.img = sprite.getArbImg().getId();
+    };
+    Grix.prototype.setActiveImg = function (img) {
+        if (this.isFinal)
+            this.img = img;
+        else
+            this.defaultImg = img;
     };
     Grix.prototype.mkRect = function (ths) {
         return function (texture) {
@@ -87,6 +95,12 @@ var Grix = (function () {
             ths.loadedTex = true;
             var coord = texture.getCoord();
             ths.drawer.addUVCoords(ths.getShader(), [coord.getXMin(), coord.getYMin(), coord.getXMax(), coord.getYMin(), coord.getXMax(), coord.getYMax(), coord.getXMin(), coord.getYMax()]);
+        };
+    };
+    Grix.prototype.spriteLoaded = function (ths) {
+        return function (sprite) {
+            ths.loadedTex = true;
+            ths.drawer.addUVCoords(ths.getShader(), [0, 0, 1, 0, 1, 1, 0, 1]);
         };
     };
     Grix.prototype.getShader = function () {
@@ -110,12 +124,11 @@ var Grix = (function () {
         if (this.angle != 0) {
             transform = Matrix4.translate(transform, !this.relRotP ? this.prX - this.xT - centerX : this.prX * (centerX * 2), !this.relRotP ? this.prY - this.yT - centerY : this.prY * (centerY * 2));
             transform = Matrix4.rotate(transform, this.angle);
-            transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT + centerX : -this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT + centerY : -this.prY * (centerY * 2));
-            transform = Matrix4.translate(transform, -centerX, -centerY);
+            transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT : -this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT : -this.prY * (centerY * 2));
         }
         if (this.sXT != 1 || this.sYT != 1)
             transform = Matrix4.scale(transform, this.sXT, this.sYT);
-        var grix = this.grixc(transform, this.color == null ? this.defaultColor : this.color);
+        var grix = this.grixc(transform, this.color == null ? this.defaultColor : this.color, this.img == null ? this.defaultImg : this.img);
         this.childs.enqueue(grix);
     };
     Grix.prototype.move = function (x, y) {
@@ -173,10 +186,11 @@ var Grix = (function () {
         this.sYT = 1;
         this.angle = 0;
         this.color = null;
+        this.img = null;
         this.relRotP = true;
     };
-    Grix.prototype.grixc = function (transform, color) {
-        return { color: color, transform: transform };
+    Grix.prototype.grixc = function (transform, color, img) {
+        return { color: color, transform: transform, img: img };
     };
     Grix.prototype.do_render = function () {
         this.start();
@@ -186,6 +200,12 @@ var Grix = (function () {
         for (var i = 0; i < size; i++) {
             var child = this.childs.dequeue();
             this.getShader().getMatHandler().setModelMatrix(child.transform);
+            if (this.texture != null && typeof this.texture.getId() == "undefined") {
+                var coords = this.texture.getImg(child.img).getCoord();
+                var mat = Matrix4.translate(coords.getXMin(), coords.getYMin());
+                mat = Matrix4.scale(mat, coords.getXMax() - coords.getXMin(), coords.getYMax() - coords.getYMin());
+                this.getShader().getMatHandler().setUVMatrix(mat);
+            }
             if (this.texture == null)
                 this.getShader().setVec4(Shader.COLOR, child.color);
             if ((this.texture != null && this.loadedTex == true) || this.texture == null)

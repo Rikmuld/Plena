@@ -13,14 +13,14 @@ var TextureManager = (function () {
     };
     TextureManager.prototype.loadSprite = function (src, key, repeat, smooth) {
         if (!this.hasImg(key)) {
-            return new Sprite(this.initTexture(src, repeat ? true : false, smooth ? true : false));
+            return new Sprite(this.initTexture(key, src, repeat ? true : false, smooth ? true : false));
         }
         else
             console.log("Sprite key already exsists!");
     };
     TextureManager.prototype.loadImg = function (src, key, repeat, smooth) {
         if (!this.hasImg(key)) {
-            var img = this.initTexture(src, repeat ? true : false, smooth ? true : false);
+            var img = this.initTexture(key, src, repeat ? true : false, smooth ? true : false);
             this.textures.put(key, img);
             return img;
         }
@@ -33,10 +33,10 @@ var TextureManager = (function () {
     TextureManager.prototype.hasImg = function (key) {
         return this.textures.contains(key);
     };
-    TextureManager.prototype.initTexture = function (src, repeat, smooth) {
+    TextureManager.prototype.initTexture = function (id, src, repeat, smooth) {
         var _this = this;
         var texture = gl.createTexture();
-        var retImg = new Img(texture);
+        var retImg = new Img(texture, id);
         var img = new Image();
         img.onload = function () {
             var c = document.createElement('canvas');
@@ -98,11 +98,15 @@ var TexCoord = (function () {
     return TexCoord;
 })();
 var Img = (function () {
-    function Img(texture) {
+    function Img(texture, id) {
         this.callbackLoaded = new Queue();
         this.isLoaded = false;
         this.texture = texture;
+        this.id = id;
     }
+    Img.prototype.getId = function () {
+        return this.id;
+    };
     Img.prototype.imgLoaded = function (max, x, y, width, height) {
         this.size = max;
         this.width = width;
@@ -144,17 +148,22 @@ var Img = (function () {
 var Sprite = (function () {
     function Sprite(img) {
         this.img = img;
+        this.id = img.getId();
     }
+    Sprite.prototype.getId = function () {
+        return this.id;
+    };
     Sprite.prototype.addImg = function (key, x, y, width, height) {
         this.img.onLoaded(this.do_addImg(this, key, x, y, width, height));
     };
     Sprite.prototype.addImgs = function (key, x, y, width, height, count, vertical) {
         this.img.onLoaded(this.do_addImgs(this, key, x, y, width, height, count, vertical));
     };
-    Sprite.prototype.do_addImgs = function (ths, key, x, y, width, height, count, vertical) {
+    Sprite.prototype.do_addImgs = function (ths, ids, x, y, width, height, count, vertical) {
         return function (img) {
             for (var i = 0; i < count; i++) {
                 vertical = vertical == true ? true : false;
+                var key = (typeof key == "string") ? ids + "_" + i : ids[i];
                 var rowCount;
                 if (vertical)
                     rowCount = Math.floor((img.getHeight() - y) / height);
@@ -162,15 +171,15 @@ var Sprite = (function () {
                     rowCount = Math.floor((img.getWidth() - x) / width);
                 var row = vertical ? i % rowCount : Math.floor(i / rowCount);
                 var colom = vertical ? Math.floor(i / rowCount) : i & rowCount;
-                var subImg = new Img(img.getGLTexture());
+                var subImg = new Img(key, img.getGLTexture());
                 subImg.imgLoaded(img.max(), x + row * width, y + colom * height, width, height);
-                ths.subImages.put(key + "_" + i, subImg);
+                ths.subImages.put(key, subImg);
             }
         };
     };
     Sprite.prototype.do_addImg = function (ths, key, x, y, width, height) {
         return function (img) {
-            var subImg = new Img(img.getGLTexture());
+            var subImg = new Img(key, img.getGLTexture());
             subImg.imgLoaded(img.max(), x, y, width, height);
             ths.subImages.put(key, subImg);
         };
@@ -183,6 +192,9 @@ var Sprite = (function () {
     };
     Sprite.prototype.getImg = function (key) {
         return this.subImages.apply(key);
+    };
+    Sprite.prototype.getArbImg = function () {
+        return this.subImages.apply(this.subImages.min());
     };
     Sprite.prototype.hasImg = function (key) {
         return this.subImages.contains(key);

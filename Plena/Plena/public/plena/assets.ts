@@ -12,14 +12,14 @@
 
     loadSprite(src: string, key: string, repeat?: boolean, smooth?: boolean):Sprite {
         if (!this.hasImg(key)) {
-            return new Sprite(this.initTexture(src, repeat ? true : false, smooth ? true : false));
+            return new Sprite(this.initTexture(key, src, repeat ? true : false, smooth ? true : false));
         }
         else console.log("Sprite key already exsists!")
     }
 
     loadImg(src: string, key: string, repeat?: boolean, smooth?: boolean):Img {
         if (!this.hasImg(key)) {
-            var img = this.initTexture(src, repeat ? true : false, smooth ? true : false);
+            var img = this.initTexture(key, src, repeat ? true : false, smooth ? true : false);
             this.textures.put(key, img);
             return img;
         }
@@ -34,9 +34,9 @@
         return this.textures.contains(key)
     }
 
-    private initTexture(src: string, repeat: boolean, smooth: boolean): Img {
+    private initTexture(id:string, src: string, repeat: boolean, smooth: boolean): Img {
         var texture = gl.createTexture();
-        var retImg = new Img(texture);
+        var retImg = new Img(texture, id);
 
         var img = new Image();
         img.onload = () => {
@@ -122,9 +122,15 @@ class Img {
     private coord: TexCoord;
     private callbackLoaded = new Queue<(Img) => void>();
     private isLoaded = false;
+    private id: string;
 
-    constructor(texture) {
+    constructor(texture, id:string) {
         this.texture = texture;
+        this.id = id;
+    }
+
+    getId():string {
+        return this.id;
     }
 
     imgLoaded(max: number, x:number, y:number, width: number, height: number) {
@@ -172,41 +178,48 @@ class Img {
 
 class Sprite {
     private img: Img;
+    private id: string;
     private subImages: TreeMap<string, Img>;
 
     constructor(img: Img) {
         this.img = img;
+        this.id = img.getId();
+    }
+
+    getId(): string {
+        return this.id;
     }
 
     addImg(key:string, x:number, y:number, width:number, height:number) {
         this.img.onLoaded(this.do_addImg(this, key, x, y, width, height))
     }
 
-    addImgs(key:string, x:number, y:number, width: number, height: number, count: number, vertical?:boolean) {
+    addImgs(key:string|string[], x:number, y:number, width: number, height: number, count: number, vertical?:boolean){
         this.img.onLoaded(this.do_addImgs(this, key, x, y, width, height, count, vertical))
     }
 
-    private do_addImgs(ths: Sprite, key: string, x: number, y: number, width: number, height: number, count: number, vertical?:boolean): (Img) => void {
+    private do_addImgs(ths: Sprite, ids: string|string[], x: number, y: number, width: number, height: number, count: number, vertical?:boolean): (Img) => void {
         return function (img: Img) {
             for (var i = 0; i < count; i++) {
                 vertical = vertical == true ? true : false;
+                var key: string = (typeof key == "string") ? (<string>ids) + "_" + i : (<string[]>ids)[i];
 
                 var rowCount: number;
                 if (vertical) rowCount = Math.floor((img.getHeight() - y) / height);
                 else rowCount = Math.floor((img.getWidth() - x) / width);
                 var row = vertical ? i % rowCount : Math.floor(i / rowCount);
                 var colom = vertical ? Math.floor(i / rowCount) : i & rowCount;
-                var subImg = new Img(img.getGLTexture());
+                var subImg = new Img(key, img.getGLTexture());
 
                 subImg.imgLoaded(img.max(), x + row * width, y + colom * height, width, height);
-                ths.subImages.put(key + "_" + i, subImg);
+                ths.subImages.put(key, subImg);
             }
         }
     }
 
     private do_addImg(ths: Sprite, key: string, x:number, y:number, width: number, height: number): (Img) => void {
         return function (img: Img) {
-            var subImg = new Img(img.getGLTexture());
+            var subImg = new Img(key, img.getGLTexture());
             subImg.imgLoaded(img.max(), x, y, width, height)
             ths.subImages.put(key, subImg);
         }
@@ -221,7 +234,11 @@ class Sprite {
     }
 
     getImg(key: string): Img {
-        return this.subImages.apply(key);
+        return this.subImages.apply(<string>key);
+    }
+
+    getArbImg(): Img {
+        return this.subImages.apply(this.subImages.min());
     }
 
     hasImg(key: string): boolean {

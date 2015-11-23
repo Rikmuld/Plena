@@ -1,21 +1,21 @@
-﻿//scale rotation move pivots
-//default translations
-//more shapes
+﻿//more shapes
+//sprite animations
+//test sprites
 //more draw modes
 class Grix {
     private customeShader: Shader;
     private matrix: MatrixHandler;
     private drawer = new Render();
-    private texture: Img;
+    private texture: Img|Sprite;
     private loadedTex = false;
-    private points: number;
-    private tempList = new Bag<number>();
     private defaultColor: Vec4 = [0, 0, 0, 1];
     private color: Vec4;
     private isFinal: boolean;
     private childs = new Queue<GrixC>();
     private width: number;
     private height: number;
+    private defaultImg: string;
+    private img: string;
 
     constructor(customShader?: Shader) {
         this.drawer = new Render();
@@ -67,14 +67,20 @@ class Grix {
         this.texture = texture;
         texture.onLoaded(this.textureLoaded(this));
     }
-    animeFromSprite(sprite: Sprite, ids: string[]|number[]) {
+    animationFromSprite(sprite: Sprite, ids: string[]) {
 
     }
-    addSprite() {
+    addAnimation(ids: string[]) {
 
     }
-    setSpriteIndex() {
-
+    addSprite(sprite: Sprite) {
+        this.texture = sprite
+        sprite.getBaseImg().onLoaded(this.textureLoaded(this));
+        this.img = sprite.getArbImg().getId();
+    }
+    setActiveImg(img: string) {
+        if (this.isFinal) this.img = img;
+        else this.defaultImg = img;
     }
     private mkRect(ths: Grix): (texture: Img) => void {
         return function (texture: Img) {
@@ -86,6 +92,12 @@ class Grix {
             ths.loadedTex = true;
             var coord = texture.getCoord();
             ths.drawer.addUVCoords(ths.getShader(), [coord.getXMin(), coord.getYMin(), coord.getXMax(), coord.getYMin(), coord.getXMax(), coord.getYMax(), coord.getXMin(), coord.getYMax()]);
+        }
+    }
+    private spriteLoaded(ths: Grix): (sprite: Sprite) => void {
+        return function (sprite: Sprite) {
+            ths.loadedTex = true;
+            ths.drawer.addUVCoords(ths.getShader(), [0, 0, 1, 0, 1, 1, 0, 1]);
         }
     }
     getShader(): Shader {
@@ -116,12 +128,11 @@ class Grix {
         if (this.angle != 0) {
             transform = Matrix4.translate(transform, !this.relRotP ? this.prX - this.xT - centerX : this.prX * (centerX * 2), !this.relRotP ? this.prY - this.yT - centerY : this.prY * (centerY * 2))
             transform = Matrix4.rotate(transform, this.angle);
-            transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT + centerX : -this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT + centerY : -this.prY * (centerY * 2))
-            transform = Matrix4.translate(transform, -centerX, -centerY)
+            transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT : -this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT : -this.prY * (centerY * 2))
         }
         if (this.sXT != 1 || this.sYT != 1) transform = Matrix4.scale(transform, this.sXT, this.sYT);
 
-        var grix = this.grixc(transform, this.color == null ? this.defaultColor : this.color)
+        var grix = this.grixc(transform, this.color == null ? this.defaultColor : this.color, this.img == null ? this.defaultImg : this.img)
         this.childs.enqueue(grix);
     }
     move(x: number, y: number) {
@@ -179,10 +190,11 @@ class Grix {
         this.sYT = 1;
         this.angle = 0;
         this.color = null;
+        this.img = null;
         this.relRotP = true;
     }
-    private grixc(transform: Mat4, color: Vec4): GrixC {
-        return { color: color, transform: transform };
+    private grixc(transform: Mat4, color: Vec4, img:string): GrixC {
+        return { color: color, transform: transform, img:img };
     }
     do_render() {
         this.start();
@@ -191,7 +203,12 @@ class Grix {
         for (var i = 0; i < size; i++) {
             var child = this.childs.dequeue();
             this.getShader().getMatHandler().setModelMatrix(child.transform);
-
+            if (this.texture != null && typeof (<Img>this.texture).getId() == "undefined") {
+                var coords = (<Sprite>this.texture).getImg(child.img).getCoord();
+                var mat = Matrix4.translate(coords.getXMin(), coords.getYMin());
+                mat = Matrix4.scale(mat, coords.getXMax() - coords.getXMin(), coords.getYMax() - coords.getYMin());
+                this.getShader().getMatHandler().setUVMatrix(mat);
+            }
             if (this.texture == null) this.getShader().setVec4(Shader.COLOR, child.color)
             if ((this.texture != null && this.loadedTex == true) || this.texture == null) this.drawer.drawElements(0, gl.TRIANGLES)
         }
@@ -223,6 +240,7 @@ class Grix {
 
 interface GrixC {
     color: Vec4;
+    img: string;
     transform: Mat4;
 }
 
