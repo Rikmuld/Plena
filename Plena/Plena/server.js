@@ -6,10 +6,10 @@ var io = require('socket.io')(server);
 app.set('view engine', 'jade');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/', render('index'));
+app.get('/(*)', render('index'));
 function render(file) {
     return function (req, res) {
-        res.render(file);
+        res.render(file, { num: req.url.split("/")[1] });
     };
 }
 server.listen(3000);

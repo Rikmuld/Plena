@@ -101,6 +101,7 @@ var Img = (function () {
     function Img(texture, id) {
         this.callbackLoaded = new Queue();
         this.isLoaded = false;
+        console.log(id + "H");
         this.texture = texture;
         this.id = id;
     }
@@ -148,6 +149,7 @@ var Img = (function () {
 var Sprite = (function () {
     function Sprite(img) {
         this.img = img;
+        this.subImages = new TreeMap(STRING_COMPARE);
         this.id = img.getId();
     }
     Sprite.prototype.getId = function () {
@@ -155,23 +157,26 @@ var Sprite = (function () {
     };
     Sprite.prototype.addImg = function (key, x, y, width, height) {
         this.img.onLoaded(this.do_addImg(this, key, x, y, width, height));
+        return this;
     };
     Sprite.prototype.addImgs = function (key, x, y, width, height, count, vertical) {
         this.img.onLoaded(this.do_addImgs(this, key, x, y, width, height, count, vertical));
+        return this;
     };
     Sprite.prototype.do_addImgs = function (ths, ids, x, y, width, height, count, vertical) {
         return function (img) {
             for (var i = 0; i < count; i++) {
                 vertical = vertical == true ? true : false;
-                var key = (typeof key == "string") ? ids + "_" + i : ids[i];
+                var key = (typeof ids == "string") ? ids + "_" + i : ids[i];
                 var rowCount;
                 if (vertical)
                     rowCount = Math.floor((img.getHeight() - y) / height);
                 else
                     rowCount = Math.floor((img.getWidth() - x) / width);
-                var row = vertical ? i % rowCount : Math.floor(i / rowCount);
-                var colom = vertical ? Math.floor(i / rowCount) : i & rowCount;
-                var subImg = new Img(key, img.getGLTexture());
+                var colom = vertical ? i % rowCount : Math.floor(i / rowCount);
+                var row = vertical ? Math.floor(i / rowCount) : i % rowCount;
+                var subImg = new Img(img.getGLTexture(), key);
+                console.log(row, colom);
                 subImg.imgLoaded(img.max(), x + row * width, y + colom * height, width, height);
                 ths.subImages.put(key, subImg);
             }
@@ -179,13 +184,13 @@ var Sprite = (function () {
     };
     Sprite.prototype.do_addImg = function (ths, key, x, y, width, height) {
         return function (img) {
-            var subImg = new Img(key, img.getGLTexture());
+            var subImg = new Img(img.getGLTexture(), key);
             subImg.imgLoaded(img.max(), x, y, width, height);
             ths.subImages.put(key, subImg);
         };
     };
     Sprite.prototype.bind = function () {
-        gl.bindTexture(gl.TEXTURE_2D, this.img.bind());
+        this.img.bind();
     };
     Sprite.prototype.getBaseImg = function () {
         return this.img;

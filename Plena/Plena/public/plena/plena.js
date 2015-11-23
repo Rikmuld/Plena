@@ -3,10 +3,53 @@ var Plena;
 (function (Plena) {
     var renderLp, updateLp;
     var canvas;
-    var shadColFrag = "precision highp float; uniform vec4 color; void main(void){ gl_FragColor = color; }";
-    var shadColVertex = " precision highp float; uniform mat4 modelMatrix; uniform mat4 projectionMatrix; uniform mat4 viewMatrix; attribute vec2 vertexPos; void main(void){ gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); }";
-    var shadTexFrag = " precision highp float; varying vec2 UV; uniform sampler2D sampler; void main(void){ gl_FragColor = texture2D(sampler, UV); }";
-    var shadTexVertex = " precision highp float; uniform mat4 modelMatrix; uniform mat4 projectionMatrix; uniform mat4 viewMatrix; varying vec2 UV; attribute vec2 vertexPos; attribute vec2 vertexUV; void main(void){ gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); UV = vertexUV; }";
+    var shadColFrag = "\
+        precision highp float; \
+        \
+        uniform vec4 color; \
+        \
+        void main(void){ \
+            gl_FragColor = color; \
+        } ";
+    var shadColVertex = "\
+        precision highp float; \
+        \
+        uniform mat4 modelMatrix; \
+        uniform mat4 projectionMatrix; \
+        uniform mat4 viewMatrix; \
+        \
+        attribute vec2 vertexPos; \
+        \
+        void main(void){ \
+            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); \
+        }";
+    var shadTexFrag = "\
+        precision highp float; \
+        \
+        varying vec2 UV; \
+        \
+        uniform sampler2D sampler; \
+        \
+        void main(void){ \
+            gl_FragColor = texture2D(sampler, UV); \
+        }";
+    var shadTexVertex = "\
+        precision highp float; \
+        \
+        uniform mat4 modelMatrix; \
+        uniform mat4 projectionMatrix; \
+        uniform mat4 viewMatrix; \
+        uniform mat4 UVMatrix; \
+        \
+        varying vec2 UV; \
+        \
+        attribute vec2 vertexPos; \
+        attribute vec2 vertexUV; \
+        \
+        void main(void){ \
+            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); \
+            UV = (UVMatrix * vec4(vertexUV, 1, 1)).xy; \
+        } ";
     var colorShader;
     var textureShader;
     var spriteManager;
@@ -128,7 +171,8 @@ var Plena;
             shad = new Shader("plenaColorShader", { "projectionMatrix": Shader.PROJECTION_MATRIX, "viewMatrix": Shader.VIEW_MATRIX, "modelMatrix": Shader.MODEL_MATRIX, "color": Shader.COLOR }, shadColVertex, shadColFrag);
         }
         else {
-            shad = new Shader("plenaTextureShader", { "projectionMatrix": Shader.PROJECTION_MATRIX, "viewMatrix": Shader.VIEW_MATRIX, "modelMatrix": Shader.MODEL_MATRIX }, shadTexVertex, shadTexFrag);
+            shad = new Shader("plenaTextureShader", { "projectionMatrix": Shader.PROJECTION_MATRIX, "viewMatrix": Shader.VIEW_MATRIX, "modelMatrix": Shader.MODEL_MATRIX, "UVMatrix": Shader.UV_MATRIX }, shadTexVertex, shadTexFrag);
+            shad.getMatHandler().setUVMatrix(Matrix4.identity());
         }
         shad.getMatHandler().setModelMatrix(Matrix4.identity());
         shad.getMatHandler().setProjectionMatrix(Matrix4.identity());

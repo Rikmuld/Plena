@@ -9,11 +9,11 @@ app.set('view engine', 'jade')
 app.set('views', path.join(__dirname, 'views'))
 app.use(express.static(path.join(__dirname, 'public')))
 
-app.get('/', render('index'))
+app.get('/(*)', render('index'))
 
 function render(file: string):(req, res) => void {
     return function (req, res) {
-        res.render(file)
+        res.render(file, {num:req.url.split("/")[1]})
     }
 }
 

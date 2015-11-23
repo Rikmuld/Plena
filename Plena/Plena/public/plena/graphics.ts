@@ -1,7 +1,7 @@
 ﻿//more shapes
 //sprite animations
-//test sprites
 //more draw modes
+//maybe key over or click events
 class Grix {
     private customeShader: Shader;
     private matrix: MatrixHandler;
@@ -25,9 +25,10 @@ class Grix {
             if (!Plena.manager().hasShader(customShader.getId())) Plena.manager().addShader(customShader);
         }
     }
-    populate() {
+    populate():Grix {
         Plena.manager().addGrix(this.getShader(), this);
         this.isFinal = true;
+        return this;
     }
     start() {
         this.drawer.start();
@@ -35,37 +36,41 @@ class Grix {
     end() {
         this.drawer.end();
     }
-    rect(width: number, height: number) {
+    rect(width: number, height: number):Grix {
         this.drawer.addVertexes(this.getShader(), [0, 0, width, 0, width, height, 0, height]);
         this.drawer.addIndieces([0, 1, 3, 1, 2, 3]);
         this.width = width;
         this.height = height;
+        return this;
     }
-    colorV3(color: number[]) {
+    colorV3(color: number[]): Grix {
         color.push(1);
-        this.setColor(color);
+        return this.setColor(color);
     }
-    colorV4(color: number[]) {
-        this.setColor(color);
+    colorV4(color: number[]): Grix {
+        return this.setColor(color);
     }
-    colorRGB(r: number, g: number, b: number) {
-        this.setColor([r / 255, g / 255, b / 255, 1])
+    colorRGB(r: number, g: number, b: number): Grix {
+        return this.setColor([r / 255, g / 255, b / 255, 1])
     }
-    colorRBGA(r: number, g: number, b: number, a: number) {
-        this.setColor([r / 255, g / 255, b / 255, a / 255]);
+    colorRBGA(r: number, g: number, b: number, a: number): Grix {
+        return this.setColor([r / 255, g / 255, b / 255, a / 255]);
     }
-    private setColor(color: Vec4) {
+    private setColor(color: Vec4):Grix {
         if (this.isFinal) this.color = color;
         else this.defaultColor = color;
+        return this;
     }
-    fromTexture(texture: Img) {
+    fromTexture(texture: Img):Grix {
         this.texture = texture;
         texture.onLoaded(this.textureLoaded(this));
         texture.onLoaded(this.mkRect(this));
+        return this;
     }
-    addTexture(texture: Img) {
+    addTexture(texture: Img):Grix {
         this.texture = texture;
         texture.onLoaded(this.textureLoaded(this));
+        return this;
     }
     animationFromSprite(sprite: Sprite, ids: string[]) {
 
@@ -73,14 +78,15 @@ class Grix {
     addAnimation(ids: string[]) {
 
     }
-    addSprite(sprite: Sprite) {
-        this.texture = sprite
-        sprite.getBaseImg().onLoaded(this.textureLoaded(this));
-        this.img = sprite.getArbImg().getId();
+    addSprite(sprite: Sprite):Grix {
+        this.texture = sprite;
+        sprite.getBaseImg().onLoaded(this.spriteLoaded(this));
+        return this;
     }
-    setActiveImg(img: string) {
+    setActiveImg(img: string): Grix {
         if (this.isFinal) this.img = img;
         else this.defaultImg = img;
+        return this;
     }
     private mkRect(ths: Grix): (texture: Img) => void {
         return function (texture: Img) {
@@ -94,9 +100,11 @@ class Grix {
             ths.drawer.addUVCoords(ths.getShader(), [coord.getXMin(), coord.getYMin(), coord.getXMax(), coord.getYMin(), coord.getXMax(), coord.getYMax(), coord.getXMin(), coord.getYMax()]);
         }
     }
-    private spriteLoaded(ths: Grix): (sprite: Sprite) => void {
-        return function (sprite: Sprite) {
+    private spriteLoaded(ths: Grix): (sprite: Img) => void {
+        return function (sprite: Img) {
             ths.loadedTex = true;
+            ths.defaultImg = (<Sprite>ths.texture).getArbImg().getId()
+            console.log(ths.defaultImg)
             ths.drawer.addUVCoords(ths.getShader(), [0, 0, 1, 0, 1, 1, 0, 1]);
         }
     }
@@ -198,12 +206,16 @@ class Grix {
     }
     do_render() {
         this.start();
-        if (this.texture != null) this.texture.bind()
+        if (this.texture != null) {
+            console.log("hallo")
+            this.texture.bind()
+        }
         var size = this.childs.size();
         for (var i = 0; i < size; i++) {
             var child = this.childs.dequeue();
             this.getShader().getMatHandler().setModelMatrix(child.transform);
-            if (this.texture != null && typeof (<Img>this.texture).getId() == "undefined") {
+            if (this.texture != null && this.loadedTex == true && typeof (<Img>this.texture).getCoord == "undefined") {
+                console.log(child.img)
                 var coords = (<Sprite>this.texture).getImg(child.img).getCoord();
                 var mat = Matrix4.translate(coords.getXMin(), coords.getYMin());
                 mat = Matrix4.scale(mat, coords.getXMax() - coords.getXMin(), coords.getYMax() - coords.getYMin());

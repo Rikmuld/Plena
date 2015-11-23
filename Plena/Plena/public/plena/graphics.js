@@ -1,7 +1,7 @@
 //more shapes
 //sprite animations
-//test sprites
 //more draw modes
+//maybe key over or click events
 var Grix = (function () {
     function Grix(customShader) {
         this.drawer = new Render();
@@ -29,6 +29,7 @@ var Grix = (function () {
     Grix.prototype.populate = function () {
         Plena.manager().addGrix(this.getShader(), this);
         this.isFinal = true;
+        return this;
     };
     Grix.prototype.start = function () {
         this.drawer.start();
@@ -41,34 +42,38 @@ var Grix = (function () {
         this.drawer.addIndieces([0, 1, 3, 1, 2, 3]);
         this.width = width;
         this.height = height;
+        return this;
     };
     Grix.prototype.colorV3 = function (color) {
         color.push(1);
-        this.setColor(color);
+        return this.setColor(color);
     };
     Grix.prototype.colorV4 = function (color) {
-        this.setColor(color);
+        return this.setColor(color);
     };
     Grix.prototype.colorRGB = function (r, g, b) {
-        this.setColor([r / 255, g / 255, b / 255, 1]);
+        return this.setColor([r / 255, g / 255, b / 255, 1]);
     };
     Grix.prototype.colorRBGA = function (r, g, b, a) {
-        this.setColor([r / 255, g / 255, b / 255, a / 255]);
+        return this.setColor([r / 255, g / 255, b / 255, a / 255]);
     };
     Grix.prototype.setColor = function (color) {
         if (this.isFinal)
             this.color = color;
         else
             this.defaultColor = color;
+        return this;
     };
     Grix.prototype.fromTexture = function (texture) {
         this.texture = texture;
         texture.onLoaded(this.textureLoaded(this));
         texture.onLoaded(this.mkRect(this));
+        return this;
     };
     Grix.prototype.addTexture = function (texture) {
         this.texture = texture;
         texture.onLoaded(this.textureLoaded(this));
+        return this;
     };
     Grix.prototype.animationFromSprite = function (sprite, ids) {
     };
@@ -76,14 +81,15 @@ var Grix = (function () {
     };
     Grix.prototype.addSprite = function (sprite) {
         this.texture = sprite;
-        sprite.getBaseImg().onLoaded(this.textureLoaded(this));
-        this.img = sprite.getArbImg().getId();
+        sprite.getBaseImg().onLoaded(this.spriteLoaded(this));
+        return this;
     };
     Grix.prototype.setActiveImg = function (img) {
         if (this.isFinal)
             this.img = img;
         else
             this.defaultImg = img;
+        return this;
     };
     Grix.prototype.mkRect = function (ths) {
         return function (texture) {
@@ -100,6 +106,8 @@ var Grix = (function () {
     Grix.prototype.spriteLoaded = function (ths) {
         return function (sprite) {
             ths.loadedTex = true;
+            ths.defaultImg = ths.texture.getArbImg().getId();
+            console.log(ths.defaultImg);
             ths.drawer.addUVCoords(ths.getShader(), [0, 0, 1, 0, 1, 1, 0, 1]);
         };
     };
@@ -194,13 +202,16 @@ var Grix = (function () {
     };
     Grix.prototype.do_render = function () {
         this.start();
-        if (this.texture != null)
+        if (this.texture != null) {
+            console.log("hallo");
             this.texture.bind();
+        }
         var size = this.childs.size();
         for (var i = 0; i < size; i++) {
             var child = this.childs.dequeue();
             this.getShader().getMatHandler().setModelMatrix(child.transform);
-            if (this.texture != null && typeof this.texture.getId() == "undefined") {
+            if (this.texture != null && this.loadedTex == true && typeof this.texture.getCoord == "undefined") {
+                console.log(child.img);
                 var coords = this.texture.getImg(child.img).getCoord();
                 var mat = Matrix4.translate(coords.getXMin(), coords.getYMin());
                 mat = Matrix4.scale(mat, coords.getXMax() - coords.getXMin(), coords.getYMax() - coords.getYMin());

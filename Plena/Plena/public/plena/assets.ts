@@ -124,12 +124,13 @@ class Img {
     private isLoaded = false;
     private id: string;
 
-    constructor(texture, id:string) {
+    constructor(texture, id: string) {
+        console.log(id + "H")
         this.texture = texture;
         this.id = id;
     }
 
-    getId():string {
+    getId(): string {
         return this.id;
     }
 
@@ -183,6 +184,7 @@ class Sprite {
 
     constructor(img: Img) {
         this.img = img;
+        this.subImages = new TreeMap<string, Img>(STRING_COMPARE);
         this.id = img.getId();
     }
 
@@ -190,26 +192,30 @@ class Sprite {
         return this.id;
     }
 
-    addImg(key:string, x:number, y:number, width:number, height:number) {
+    addImg(key:string, x:number, y:number, width:number, height:number):Sprite {
         this.img.onLoaded(this.do_addImg(this, key, x, y, width, height))
+        return this;
     }
 
-    addImgs(key:string|string[], x:number, y:number, width: number, height: number, count: number, vertical?:boolean){
+    addImgs(key:string|string[], x:number, y:number, width: number, height: number, count: number, vertical?:boolean):Sprite{
         this.img.onLoaded(this.do_addImgs(this, key, x, y, width, height, count, vertical))
+        return this;
     }
 
     private do_addImgs(ths: Sprite, ids: string|string[], x: number, y: number, width: number, height: number, count: number, vertical?:boolean): (Img) => void {
         return function (img: Img) {
             for (var i = 0; i < count; i++) {
                 vertical = vertical == true ? true : false;
-                var key: string = (typeof key == "string") ? (<string>ids) + "_" + i : (<string[]>ids)[i];
+                var key: string = (typeof ids == "string") ? (<string>ids) + "_" + i : (<string[]>ids)[i];
 
                 var rowCount: number;
                 if (vertical) rowCount = Math.floor((img.getHeight() - y) / height);
                 else rowCount = Math.floor((img.getWidth() - x) / width);
-                var row = vertical ? i % rowCount : Math.floor(i / rowCount);
-                var colom = vertical ? Math.floor(i / rowCount) : i & rowCount;
-                var subImg = new Img(key, img.getGLTexture());
+                var colom = vertical ? i % rowCount : Math.floor(i / rowCount);
+                var row = vertical ? Math.floor(i / rowCount) : i % rowCount;
+                var subImg = new Img(img.getGLTexture(), key);
+
+                console.log(row, colom)
 
                 subImg.imgLoaded(img.max(), x + row * width, y + colom * height, width, height);
                 ths.subImages.put(key, subImg);
@@ -219,14 +225,14 @@ class Sprite {
 
     private do_addImg(ths: Sprite, key: string, x:number, y:number, width: number, height: number): (Img) => void {
         return function (img: Img) {
-            var subImg = new Img(key, img.getGLTexture());
+            var subImg = new Img(img.getGLTexture(), key);
             subImg.imgLoaded(img.max(), x, y, width, height)
             ths.subImages.put(key, subImg);
         }
     }
 
     bind() {
-        gl.bindTexture(gl.TEXTURE_2D, this.img.bind())
+        this.img.bind()
     }
 
     getBaseImg(): Img {
@@ -234,7 +240,7 @@ class Sprite {
     }
 
     getImg(key: string): Img {
-        return this.subImages.apply(<string>key);
+        return this.subImages.apply(key);
     }
 
     getArbImg(): Img {

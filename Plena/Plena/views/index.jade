@@ -1,7 +1,7 @@
 ﻿extends doc.jade
 
 block title
-    title Test Test
+    title= num
 
 block append scripts
-    script(src="tests/t1.js")
+    script(src="tests/t" + num + ".js")
