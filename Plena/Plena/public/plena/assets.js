@@ -152,8 +152,17 @@ var Sprite = (function () {
         this.subImages = new TreeMap(STRING_COMPARE);
         this.id = img.getId();
     }
+    Sprite.prototype.onLoaded = function (call) {
+        this.img.onLoaded(call);
+    };
     Sprite.prototype.getId = function () {
         return this.id;
+    };
+    Sprite.prototype.getImgs = function () {
+        return this.subImages.values();
+    };
+    Sprite.prototype.getImgNames = function () {
+        return this.subImages.keys();
     };
     Sprite.prototype.addImg = function (key, x, y, width, height) {
         this.img.onLoaded(this.do_addImg(this, key, x, y, width, height));

@@ -1,13 +1,16 @@
+//multiple sprite animations
+//sprite animations and img same time
+//mirror l/r t/d
 //more shapes
-//sprite animations
 //more draw modes
 //maybe key over or click events
 var Grix = (function () {
     function Grix(customShader) {
         this.drawer = new Render();
         this.loadedTex = false;
-        this.defaultColor = [0, 0, 0, 1];
         this.childs = new Queue();
+        this.currAnim = -1;
+        this.defaultColor = [1, 1, 1, 1];
         this.xT = 0;
         this.yT = 0;
         this.sXT = 1;
@@ -18,6 +21,8 @@ var Grix = (function () {
         this.prX = 0;
         this.prY = 0;
         this.relRotP = true;
+        this.mirrorX = false;
+        this.mirrorY = false;
         this.drawer = new Render();
         if (customShader) {
             this.customeShader = customShader;
@@ -29,6 +34,7 @@ var Grix = (function () {
     Grix.prototype.populate = function () {
         Plena.manager().addGrix(this.getShader(), this);
         this.isFinal = true;
+        this.clean();
         return this;
     };
     Grix.prototype.start = function () {
@@ -75,13 +81,19 @@ var Grix = (function () {
         texture.onLoaded(this.textureLoaded(this));
         return this;
     };
-    Grix.prototype.animationFromSprite = function (sprite, ids) {
+    Grix.prototype.animationFromSprite = function (sprite) {
+        this.texture = sprite;
+        sprite.onLoaded(this.spriteLoaded(this));
+        sprite.onLoaded(this.mkRectSP(this, sprite));
+        sprite.onLoaded(this.setupAnimation(this, sprite));
+        return this;
     };
     Grix.prototype.addAnimation = function (ids) {
+        return this;
     };
     Grix.prototype.addSprite = function (sprite) {
         this.texture = sprite;
-        sprite.getBaseImg().onLoaded(this.spriteLoaded(this));
+        sprite.onLoaded(this.spriteLoaded(this));
         return this;
     };
     Grix.prototype.setActiveImg = function (img) {
@@ -96,6 +108,19 @@ var Grix = (function () {
             ths.rect(texture.getWidth(), texture.getHeight());
         };
     };
+    Grix.prototype.mkRectSP = function (ths, sprite) {
+        return function (texture) {
+            var img = sprite.getArbImg();
+            ths.rect(img.getWidth(), img.getHeight());
+        };
+    };
+    Grix.prototype.setupAnimation = function (ths, sprite) {
+        return function (texture) {
+            ths.animation = sprite.getImgNames();
+            ths.currAnim = 0;
+            console.log("animation setup");
+        };
+    };
     Grix.prototype.textureLoaded = function (ths) {
         return function (texture) {
             ths.loadedTex = true;
@@ -107,8 +132,8 @@ var Grix = (function () {
         return function (sprite) {
             ths.loadedTex = true;
             ths.defaultImg = ths.texture.getArbImg().getId();
-            console.log(ths.defaultImg);
             ths.drawer.addUVCoords(ths.getShader(), [0, 0, 1, 0, 1, 1, 0, 1]);
+            console.log("hallo2");
         };
     };
     Grix.prototype.getShader = function () {
@@ -122,22 +147,29 @@ var Grix = (function () {
             return this.customeShader;
     };
     Grix.prototype.render = function () {
+        if (this.texture != null && !this.loadedTex)
+            return;
         var transform = Matrix4.identity();
         var centerX = ((this.width * this.sXT) / 2);
         var centerY = ((this.height * this.sYT) / 2);
         if (this.angle != 0)
             transform = Matrix4.translate(transform, centerX, centerY);
         if (this.xT != 0 || this.yT != 0)
-            transform = Matrix4.translate(transform, this.xT, this.yT);
+            transform = Matrix4.translate(transform, this.xT + (this.mirrorX ? centerX * 2 : 0), this.yT + +(this.mirrorY ? centerY * 2 : 0));
         if (this.angle != 0) {
             transform = Matrix4.translate(transform, !this.relRotP ? this.prX - this.xT - centerX : this.prX * (centerX * 2), !this.relRotP ? this.prY - this.yT - centerY : this.prY * (centerY * 2));
             transform = Matrix4.rotate(transform, this.angle);
             transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT : -this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT : -this.prY * (centerY * 2));
         }
         if (this.sXT != 1 || this.sYT != 1)
-            transform = Matrix4.scale(transform, this.sXT, this.sYT);
-        var grix = this.grixc(transform, this.color == null ? this.defaultColor : this.color, this.img == null ? this.defaultImg : this.img);
-        this.childs.enqueue(grix);
+            transform = Matrix4.scale(transform, this.sXT * (this.mirrorX ? -1 : 1), this.sYT * (this.mirrorY ? -1 : 1));
+        this.childs.enqueue(this.grixc(transform, this.color, this.img, this.currAnim == -1 ? null : this.animation[this.currAnim]));
+    };
+    Grix.prototype.animationStep = function (step) {
+        if (this.animation == null)
+            return;
+        else
+            this.currAnim = step % this.animation.length;
     };
     Grix.prototype.move = function (x, y) {
         this.xT += x;
@@ -193,12 +225,15 @@ var Grix = (function () {
         this.sXT = 1;
         this.sYT = 1;
         this.angle = 0;
-        this.color = null;
-        this.img = null;
+        this.currAnim = this.animation == null ? -1 : 0;
+        this.color = this.defaultColor;
+        this.img = this.defaultImg;
         this.relRotP = true;
+        this.mirrorX = false;
+        this.mirrorY = false;
     };
-    Grix.prototype.grixc = function (transform, color, img) {
-        return { color: color, transform: transform, img: img };
+    Grix.prototype.grixc = function (transform, color, img, anim) {
+        return { color: color, transform: transform, img: img, anim: anim };
     };
     Grix.prototype.do_render = function () {
         this.start();
@@ -211,8 +246,7 @@ var Grix = (function () {
             var child = this.childs.dequeue();
             this.getShader().getMatHandler().setModelMatrix(child.transform);
             if (this.texture != null && this.loadedTex == true && typeof this.texture.getCoord == "undefined") {
-                console.log(child.img);
-                var coords = this.texture.getImg(child.img).getCoord();
+                var coords = this.texture.getImg(child.anim != null ? child.anim : child.img).getCoord();
                 var mat = Matrix4.translate(coords.getXMin(), coords.getYMin());
                 mat = Matrix4.scale(mat, coords.getXMax() - coords.getXMin(), coords.getYMax() - coords.getYMin());
                 this.getShader().getMatHandler().setUVMatrix(mat);
@@ -224,6 +258,12 @@ var Grix = (function () {
         }
         this.end();
         this.clean();
+    };
+    Grix.prototype.mirrorHorizontal = function (mirror) {
+        this.mirrorX = mirror;
+    };
+    Grix.prototype.mirrorVertical = function (mirror) {
+        this.mirrorY = mirror;
     };
     Grix.prototype.setPivotRot = function (x, y, relative) {
         if (typeof relative == "boolean" && relative == false) {

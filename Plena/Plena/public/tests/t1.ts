@@ -7,6 +7,7 @@
         cat = new Grix()
             .fromTexture(Plena.loadImg("cat.png"))
             .populate()
+            
         Keyboard.addPressedEvent(Keyboard.KEY_SPACE, increseCount);
     }
 
@@ -15,20 +16,22 @@
     }
 
     export function render() {
-        cat.scaleToSize(15, 15)
+        var multiple = (Keyboard.isKeyDown(Keyboard.KEY_D)) ? 2 : 1;
+
+        cat.scaleToSize(10, 10)
         cat.setPivotMove(0.5, 0)
         cat.setPivotRot(250, 250, false);
         cat.moveTo(250, 0)
         cat.rotate(rotate);
-        for (var i = 0; i < 50; i++) {
+        for (var i = 0; i < 500 * multiple; i++) {
             cat.render();
             cat.rotate((Math.PI * 2) / count);
-            cat.move(0, 250 / 50)
+            cat.move(0, 250 / 500)
         }
     }
 
     function increseCount() {
-        count += Math.floor(count / 25) + 1;
+        count += 3*Math.floor(count / 25) + 1;
     }
 }
 

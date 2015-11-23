@@ -188,8 +188,20 @@ class Sprite {
         this.id = img.getId();
     }
 
+    onLoaded(call: (Img) => void) {
+        this.img.onLoaded(call);
+    }
+
     getId(): string {
         return this.id;
+    }
+
+    getImgs(): Img[] {
+        return this.subImages.values();
+    }
+
+    getImgNames(): string[] {
+        return this.subImages.keys();
     }
 
     addImg(key:string, x:number, y:number, width:number, height:number):Sprite {

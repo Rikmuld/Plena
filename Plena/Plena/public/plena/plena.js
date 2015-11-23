@@ -1,4 +1,5 @@
 var gl;
+//all textures loaded cheack and only then call render/update stuff
 var Plena;
 (function (Plena) {
     var renderLp, updateLp;
@@ -147,9 +148,9 @@ var Plena;
     }
     Plena.changeProjection = changeProjection;
     function looper() {
-        updateLp();
         GLF.clearBufferColor();
         renderLp();
+        updateLp();
         spriteManager.render();
         requestAnimationFrame(looper);
     }

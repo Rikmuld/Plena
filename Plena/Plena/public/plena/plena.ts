@@ -1,5 +1,6 @@
 ﻿var gl;
 
+//all textures loaded cheack and only then call render/update stuff
 module Plena {
     var renderLp, updateLp: () => void;
     var canvas;
@@ -167,11 +168,10 @@ module Plena {
     }
 
     function looper() {
-        updateLp();
-
         GLF.clearBufferColor()
 
         renderLp();
+        updateLp();
         spriteManager.render();
         requestAnimationFrame(looper);
     }
