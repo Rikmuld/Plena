@@ -1,6 +1,3 @@
-//multiple sprite animations
-//sprite animations and img same time
-//mirror l/r t/d
 //more shapes
 //more draw modes
 //maybe key over or click events
@@ -9,7 +6,6 @@ var Grix = (function () {
         this.drawer = new Render();
         this.loadedTex = false;
         this.childs = new Queue();
-        this.currAnim = -1;
         this.defaultColor = [1, 1, 1, 1];
         this.xT = 0;
         this.yT = 0;
@@ -84,11 +80,8 @@ var Grix = (function () {
     Grix.prototype.animationFromSprite = function (sprite) {
         this.texture = sprite;
         sprite.onLoaded(this.spriteLoaded(this));
-        sprite.onLoaded(this.mkRectSP(this, sprite));
+        sprite.onLoaded(this.mkRectSPA(this, sprite));
         sprite.onLoaded(this.setupAnimation(this, sprite));
-        return this;
-    };
-    Grix.prototype.addAnimation = function (ids) {
         return this;
     };
     Grix.prototype.addSprite = function (sprite) {
@@ -101,6 +94,7 @@ var Grix = (function () {
             this.img = img;
         else
             this.defaultImg = img;
+        this.anim = null;
         return this;
     };
     Grix.prototype.mkRect = function (ths) {
@@ -110,15 +104,20 @@ var Grix = (function () {
     };
     Grix.prototype.mkRectSP = function (ths, sprite) {
         return function (texture) {
-            var img = sprite.getArbImg();
+            var img = sprite.arbImg();
+            ths.rect(img.getWidth(), img.getHeight());
+        };
+    };
+    Grix.prototype.mkRectSPA = function (ths, sprite) {
+        return function (texture) {
+            var img = sprite.arbAnim()[0];
             ths.rect(img.getWidth(), img.getHeight());
         };
     };
     Grix.prototype.setupAnimation = function (ths, sprite) {
         return function (texture) {
-            ths.animation = sprite.getImgNames();
-            ths.currAnim = 0;
-            console.log("animation setup");
+            ths.defaultAnim = sprite.arbAnimName();
+            ths.setActiveAnimation(ths.defaultImg);
         };
     };
     Grix.prototype.textureLoaded = function (ths) {
@@ -131,9 +130,9 @@ var Grix = (function () {
     Grix.prototype.spriteLoaded = function (ths) {
         return function (sprite) {
             ths.loadedTex = true;
-            ths.defaultImg = ths.texture.getArbImg().getId();
+            ths.defaultImg = ths.texture.arbImgName();
+            ths.setActiveImg(ths.defaultImg);
             ths.drawer.addUVCoords(ths.getShader(), [0, 0, 1, 0, 1, 1, 0, 1]);
-            console.log("hallo2");
         };
     };
     Grix.prototype.getShader = function () {
@@ -163,13 +162,13 @@ var Grix = (function () {
         }
         if (this.sXT != 1 || this.sYT != 1)
             transform = Matrix4.scale(transform, this.sXT * (this.mirrorX ? -1 : 1), this.sYT * (this.mirrorY ? -1 : 1));
-        this.childs.enqueue(this.grixc(transform, this.color, this.img, this.currAnim == -1 ? null : this.animation[this.currAnim]));
+        this.childs.enqueue(this.grixc(transform, this.color, this.img, this.anim, this.animStep));
     };
     Grix.prototype.animationStep = function (step) {
-        if (this.animation == null)
+        if (this.anim == null)
             return;
         else
-            this.currAnim = step % this.animation.length;
+            this.animStep = step % this.texture.getAnim(this.anim).length;
     };
     Grix.prototype.move = function (x, y) {
         this.xT += x;
@@ -192,6 +191,14 @@ var Grix = (function () {
     Grix.prototype.scaleTo = function (x, y) {
         this.sXT = x;
         this.sYT = y;
+    };
+    Grix.prototype.setActiveAnimation = function (anim) {
+        if (this.isFinal)
+            this.anim = anim;
+        else
+            this.defaultAnim = anim;
+        this.img = null;
+        return this;
     };
     Grix.prototype.scaleToSize = function (width, height) {
         var x = width / this.width;
@@ -225,28 +232,30 @@ var Grix = (function () {
         this.sXT = 1;
         this.sYT = 1;
         this.angle = 0;
-        this.currAnim = this.animation == null ? -1 : 0;
+        this.anim = this.defaultAnim;
+        this.animStep = 0;
         this.color = this.defaultColor;
         this.img = this.defaultImg;
         this.relRotP = true;
         this.mirrorX = false;
         this.mirrorY = false;
     };
-    Grix.prototype.grixc = function (transform, color, img, anim) {
-        return { color: color, transform: transform, img: img, anim: anim };
+    Grix.prototype.grixc = function (transform, color, img, anim, animStep) {
+        return { color: color, transform: transform, img: img, anim: anim, animStep: animStep };
     };
     Grix.prototype.do_render = function () {
         this.start();
-        if (this.texture != null) {
-            console.log("hallo");
+        if (this.texture != null)
             this.texture.bind();
-        }
         var size = this.childs.size();
         for (var i = 0; i < size; i++) {
             var child = this.childs.dequeue();
-            this.getShader().getMatHandler().setModelMatrix(child.transform);
+            this.getShader().getMatHandler().setModelMatrix(child.transform); //sort childs based upon the coords maybe, less shader mat change
             if (this.texture != null && this.loadedTex == true && typeof this.texture.getCoord == "undefined") {
-                var coords = this.texture.getImg(child.anim != null ? child.anim : child.img).getCoord();
+                if (child.anim == null && child.img == null)
+                    break;
+                var sprite = this.texture;
+                var coords = (child.anim == null ? sprite.getImg(child.img) : sprite.getAnim(child.anim)[child.animStep]).getCoord();
                 var mat = Matrix4.translate(coords.getXMin(), coords.getYMin());
                 mat = Matrix4.scale(mat, coords.getXMax() - coords.getXMin(), coords.getYMax() - coords.getYMin());
                 this.getShader().getMatHandler().setUVMatrix(mat);

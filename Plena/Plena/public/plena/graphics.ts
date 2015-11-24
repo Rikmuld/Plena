@@ -1,7 +1,4 @@
-﻿//multiple sprite animations
-//sprite animations and img same time
-//mirror l/r t/d
-//more shapes
+﻿//more shapes
 //more draw modes
 //maybe key over or click events
 class Grix {
@@ -14,12 +11,13 @@ class Grix {
     private childs = new Queue<GrixC>();
     private width: number;
     private height: number;
-    private animation: string[];
-    private currAnim: number = -1;
     private defaultColor: Vec4 = [1, 1, 1, 1];
     private color: Vec4;
     private defaultImg: string;
     private img: string;
+    private defaultAnim: string;
+    private anim: string;
+    private animStep: number;
     private xT: number = 0;
     private yT: number = 0;
     private sXT: number = 1;
@@ -92,12 +90,8 @@ class Grix {
     animationFromSprite(sprite: Sprite):Grix {
         this.texture = sprite;
         sprite.onLoaded(this.spriteLoaded(this));
-        sprite.onLoaded(this.mkRectSP(this, sprite))
+        sprite.onLoaded(this.mkRectSPA(this, sprite))
         sprite.onLoaded(this.setupAnimation(this, sprite))
-        return this;
-    }
-    addAnimation(ids: string[]):Grix {
-
         return this;
     }
     addSprite(sprite: Sprite):Grix {
@@ -108,6 +102,8 @@ class Grix {
     setActiveImg(img: string): Grix {
         if (this.isFinal) this.img = img;
         else this.defaultImg = img;
+
+        this.anim = null;
         return this;
     }
     private mkRect(ths: Grix): (texture: Img) => void {
@@ -117,15 +113,20 @@ class Grix {
     }
     private mkRectSP(ths: Grix, sprite: Sprite): (texture: Img) => void {
         return function (texture: Img) {
-            var img = sprite.getArbImg();
+            var img = sprite.arbImg();
+            ths.rect(img.getWidth(), img.getHeight())
+        }
+    }
+    private mkRectSPA(ths: Grix, sprite: Sprite): (texture: Img) => void {
+        return function (texture: Img) {
+            var img = sprite.arbAnim()[0];
             ths.rect(img.getWidth(), img.getHeight())
         }
     }
     private setupAnimation(ths: Grix, sprite: Sprite): (texture: Img) => void {
         return function (texture: Img) {
-            ths.animation = sprite.getImgNames();
-            ths.currAnim = 0;
-            console.log("animation setup")
+            ths.defaultAnim = sprite.arbAnimName();
+            ths.setActiveAnimation(ths.defaultImg);
         }
     }
     private textureLoaded(ths: Grix): (texture: Img) => void {
@@ -138,9 +139,9 @@ class Grix {
     private spriteLoaded(ths: Grix): (sprite: Img) => void {
         return function (sprite: Img) {
             ths.loadedTex = true;
-            ths.defaultImg = (<Sprite>ths.texture).getArbImg().getId()
+            ths.defaultImg = (<Sprite>ths.texture).arbImgName();
+            ths.setActiveImg(ths.defaultImg);
             ths.drawer.addUVCoords(ths.getShader(), [0, 0, 1, 0, 1, 1, 0, 1]);
-            console.log("hallo2")
         }
     }
     getShader(): Shader {
@@ -164,11 +165,11 @@ class Grix {
             transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT : -this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT : -this.prY * (centerY * 2))
         }
         if (this.sXT != 1 || this.sYT != 1) transform = Matrix4.scale(transform, this.sXT * (this.mirrorX ? -1 : 1), this.sYT * (this.mirrorY ? -1 : 1));
-        this.childs.enqueue(this.grixc(transform, this.color, this.img, this.currAnim == -1 ? null : this.animation[this.currAnim]));
+        this.childs.enqueue(this.grixc(transform, this.color, this.img, this.anim, this.animStep));
     }
     animationStep(step: number) {
-        if (this.animation == null) return;
-        else this.currAnim = step % this.animation.length;
+        if (this.anim == null) return;
+        else this.animStep = step % (<Sprite>this.texture).getAnim(this.anim).length;
     }
     move(x: number, y: number) {
         this.xT += x;
@@ -191,6 +192,13 @@ class Grix {
     scaleTo(x: number, y: number) {
         this.sXT = x;
         this.sYT = y;
+    }
+    setActiveAnimation(anim: string) {
+        if (this.isFinal) this.anim = anim;
+        else this.defaultAnim = anim;
+
+        this.img = null;
+        return this;
     }
     scaleToSize(width: number, height: number) {
         var x = width / this.width;
@@ -224,28 +232,28 @@ class Grix {
         this.sXT = 1;
         this.sYT = 1;
         this.angle = 0;
-        this.currAnim = this.animation == null ? -1 : 0;
+        this.anim = this.defaultAnim;
+        this.animStep = 0;
         this.color = this.defaultColor;
         this.img = this.defaultImg;
         this.relRotP = true;
         this.mirrorX = false;
         this.mirrorY = false;
     }
-    private grixc(transform: Mat4, color: Vec4, img:string, anim:string): GrixC {
-        return { color: color, transform: transform, img:img, anim:anim };
+    private grixc(transform: Mat4, color: Vec4, img:string, anim:string, animStep:number): GrixC {
+        return { color: color, transform: transform, img:img, anim:anim, animStep:animStep };
     }
     do_render() {
         this.start();
-        if (this.texture != null) {
-            console.log("hallo")
-            this.texture.bind()
-        }
+        if (this.texture != null) this.texture.bind()  
         var size = this.childs.size();
         for (var i = 0; i < size; i++) {
             var child = this.childs.dequeue();
-            this.getShader().getMatHandler().setModelMatrix(child.transform);
+            this.getShader().getMatHandler().setModelMatrix(child.transform); //sort childs based upon the coords maybe, less shader mat change
             if (this.texture != null && this.loadedTex == true && typeof (<Img>this.texture).getCoord == "undefined") {
-                var coords = (<Sprite>this.texture).getImg(child.anim != null ? child.anim : child.img).getCoord();
+                if (child.anim == null && child.img == null) break;
+                var sprite = (<Sprite>this.texture)
+                var coords = (child.anim == null ? sprite.getImg(child.img) : sprite.getAnim(child.anim)[child.animStep]).getCoord();
                 var mat = Matrix4.translate(coords.getXMin(), coords.getYMin());
                 mat = Matrix4.scale(mat, coords.getXMax() - coords.getXMin(), coords.getYMax() - coords.getYMin());
                 this.getShader().getMatHandler().setUVMatrix(mat);
@@ -289,6 +297,7 @@ interface GrixC {
     color: Vec4;
     img: string;
     anim: string;
+    animStep: number;
     transform: Mat4;
 }
 

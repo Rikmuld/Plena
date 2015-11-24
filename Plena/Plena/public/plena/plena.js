@@ -119,6 +119,7 @@ var Plena;
         looper();
     }
     Plena.init = init;
+    //img filters
     function loadSpriteFile(src, repeat, smooth, id) {
         if (!id)
             id = src.split("/").pop().split('.')[0];

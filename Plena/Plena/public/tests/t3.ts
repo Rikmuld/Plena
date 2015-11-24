@@ -3,10 +3,15 @@
     var animation = 0;
     var x = 0;
     var direction = 1;
+    var cats = ["catBlack", "catBlue", "catOrange", "catWhite"]
 
     export function setup() {
         cat = new Grix()
-            .animationFromSprite(Plena.loadSpriteFile("cats.png").addImgs("cat", 0, 5 * 32, 32, 32, 3))
+            .animationFromSprite(Plena.loadSpriteFile("cats.png")
+                .addAnimImgs(cats[0], 0, 5 * 32, 32, 32, 3)
+                .addAnimImgs(cats[1], 3 * 32, 5 * 32, 32, 32, 3)
+                .addAnimImgs(cats[2], 6 * 32, 5 * 32, 32, 32, 3)
+                .addAnimImgs(cats[3], 9 * 32, 5 * 32, 32, 32, 3))
             .populate();
         Keyboard.addPressedEvent(Keyboard.KEY_SPACE, switchMovement)
     }
@@ -25,6 +30,7 @@
         cat.moveTo(x, 250)
         cat.mirrorHorizontal(direction==1)
         cat.animationStep(Math.floor(animation))
+        cat.setActiveAnimation(cats[direction==-1?1:0])
         cat.render();
     }
 

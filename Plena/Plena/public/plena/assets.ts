@@ -181,6 +181,7 @@ class Sprite {
     private img: Img;
     private id: string;
     private subImages: TreeMap<string, Img>;
+    private animations: TreeMap<string, Img[]>;
 
     constructor(img: Img) {
         this.img = img;
@@ -209,16 +210,49 @@ class Sprite {
         return this;
     }
 
-    addImgs(key:string|string[], x:number, y:number, width: number, height: number, count: number, vertical?:boolean):Sprite{
+    addImgs(key:string[], x:number, y:number, width: number, height: number, count: number, vertical?:boolean):Sprite{
         this.img.onLoaded(this.do_addImgs(this, key, x, y, width, height, count, vertical))
         return this;
     }
 
+    addAnimImgs(key: string, x: number, y: number, width: number, height: number, count: number, vertical?: boolean): Sprite {
+        this.img.onLoaded(this.do_addImgs(this, key, x, y, width, height, count, vertical))
+        return this;
+    }
+
+    getAnims(): Img[][] {
+        return this.animations.values();
+    }
+
+    getAnim(key:string): Img[] {
+        return this.animations.apply(key);
+    }
+
+    getAnimNames(): string[] {
+        return this.animations.keys();
+    }
+
+    arbAnimName(): string {
+        return this.animations.min();
+    }
+
+    arbAnim(): Img[] {
+        return this.animations.apply(this.arbAnimName());
+    }
+
     private do_addImgs(ths: Sprite, ids: string|string[], x: number, y: number, width: number, height: number, count: number, vertical?:boolean): (Img) => void {
         return function (img: Img) {
+            var imgAr: Img[];
+            var isAnim = false;
+            var key: string;
+
+            if (typeof ids == "string") {
+                imgAr = [];
+                isAnim = true;
+            }
             for (var i = 0; i < count; i++) {
                 vertical = vertical == true ? true : false;
-                var key: string = (typeof ids == "string") ? (<string>ids) + "_" + i : (<string[]>ids)[i];
+                key = (typeof ids == "string") ? (<string>ids) + "_" + i : (<string[]>ids)[i];
 
                 var rowCount: number;
                 if (vertical) rowCount = Math.floor((img.getHeight() - y) / height);
@@ -227,10 +261,14 @@ class Sprite {
                 var row = vertical ? Math.floor(i / rowCount) : i % rowCount;
                 var subImg = new Img(img.getGLTexture(), key);
 
-                console.log(row, colom)
-
                 subImg.imgLoaded(img.max(), x + row * width, y + colom * height, width, height);
-                ths.subImages.put(key, subImg);
+                if (!isAnim) ths.subImages.put(key, subImg);
+                else imgAr.push(subImg)
+            }
+
+            if (isAnim) {
+                if (ths.animations == null) ths.animations = new TreeMap<string, Img[]>(STRING_COMPARE);
+                ths.animations.put(<string>ids, imgAr);
             }
         }
     }
@@ -255,8 +293,12 @@ class Sprite {
         return this.subImages.apply(key);
     }
 
-    getArbImg(): Img {
-        return this.subImages.apply(this.subImages.min());
+    arbImgName(): string {
+        return this.subImages.min();
+    }
+
+    arbImg(): Img {
+        return this.subImages.apply(this.arbImgName());
     }
 
     hasImg(key: string): boolean {

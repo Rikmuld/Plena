@@ -139,6 +139,7 @@ module Plena {
         looper()
     }
 
+    //img filters
     export function loadSpriteFile(src: string, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
         if (!id) id = src.split("/").pop().split('.')[0];
         return textureManager.loadSprite(src, id, repeat, smooth);

@@ -172,11 +172,37 @@ var Sprite = (function () {
         this.img.onLoaded(this.do_addImgs(this, key, x, y, width, height, count, vertical));
         return this;
     };
+    Sprite.prototype.addAnimImgs = function (key, x, y, width, height, count, vertical) {
+        this.img.onLoaded(this.do_addImgs(this, key, x, y, width, height, count, vertical));
+        return this;
+    };
+    Sprite.prototype.getAnims = function () {
+        return this.animations.values();
+    };
+    Sprite.prototype.getAnim = function (key) {
+        return this.animations.apply(key);
+    };
+    Sprite.prototype.getAnimNames = function () {
+        return this.animations.keys();
+    };
+    Sprite.prototype.arbAnimName = function () {
+        return this.animations.min();
+    };
+    Sprite.prototype.arbAnim = function () {
+        return this.animations.apply(this.arbAnimName());
+    };
     Sprite.prototype.do_addImgs = function (ths, ids, x, y, width, height, count, vertical) {
         return function (img) {
+            var imgAr;
+            var isAnim = false;
+            var key;
+            if (typeof ids == "string") {
+                imgAr = [];
+                isAnim = true;
+            }
             for (var i = 0; i < count; i++) {
                 vertical = vertical == true ? true : false;
-                var key = (typeof ids == "string") ? ids + "_" + i : ids[i];
+                key = (typeof ids == "string") ? ids + "_" + i : ids[i];
                 var rowCount;
                 if (vertical)
                     rowCount = Math.floor((img.getHeight() - y) / height);
@@ -185,9 +211,16 @@ var Sprite = (function () {
                 var colom = vertical ? i % rowCount : Math.floor(i / rowCount);
                 var row = vertical ? Math.floor(i / rowCount) : i % rowCount;
                 var subImg = new Img(img.getGLTexture(), key);
-                console.log(row, colom);
                 subImg.imgLoaded(img.max(), x + row * width, y + colom * height, width, height);
-                ths.subImages.put(key, subImg);
+                if (!isAnim)
+                    ths.subImages.put(key, subImg);
+                else
+                    imgAr.push(subImg);
+            }
+            if (isAnim) {
+                if (ths.animations == null)
+                    ths.animations = new TreeMap(STRING_COMPARE);
+                ths.animations.put(ids, imgAr);
             }
         };
     };
@@ -207,8 +240,11 @@ var Sprite = (function () {
     Sprite.prototype.getImg = function (key) {
         return this.subImages.apply(key);
     };
-    Sprite.prototype.getArbImg = function () {
-        return this.subImages.apply(this.subImages.min());
+    Sprite.prototype.arbImgName = function () {
+        return this.subImages.min();
+    };
+    Sprite.prototype.arbImg = function () {
+        return this.subImages.apply(this.arbImgName());
     };
     Sprite.prototype.hasImg = function (key) {
         return this.subImages.contains(key);
