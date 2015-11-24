@@ -1,3 +1,4 @@
+//add more keys
 var Mouse = (function () {
     function Mouse() {
     }
@@ -92,10 +93,26 @@ var Keyboard = (function () {
     Keyboard.currentlyPressedKeys = new Array(128);
     Keyboard.keyPressedCalls = new DeepTreeMap(NUMBER_COMPARE);
     Keyboard.keyReleasedCalls = new DeepTreeMap(NUMBER_COMPARE);
+    Keyboard.KEY_BACKSPACE = 8;
+    Keyboard.KEY_TAB = 9;
+    Keyboard.KEY_ENTER = 13;
+    Keyboard.KEY_SHIFT = 16;
+    Keyboard.KEY_CTRL = 17;
+    Keyboard.KEY_ALT = 18;
+    Keyboard.KEY_BREAK = 19;
+    Keyboard.KEY_CAPS = 20;
+    Keyboard.KEY_ESCAPE = 27;
+    Keyboard.KEY_SPACE = 32;
+    Keyboard.KEY_PAGE_UP = 33;
+    Keyboard.KEY_PAGE_DOWN = 34;
+    Keyboard.KEY_END = 35;
+    Keyboard.KEY_HOME = 36;
     Keyboard.KEY_LEFT = 37;
     Keyboard.KEY_UP = 38;
     Keyboard.KEY_RIGHT = 39;
     Keyboard.KEY_DOWN = 40;
+    Keyboard.KEY_INSERT = 45;
+    Keyboard.KEY_DELETE = 46;
     Keyboard.KEY_0 = 48;
     Keyboard.KEY_1 = 49;
     Keyboard.KEY_2 = 50;
@@ -132,8 +149,19 @@ var Keyboard = (function () {
     Keyboard.KEY_X = 88;
     Keyboard.KEY_Y = 89;
     Keyboard.KEY_Z = 90;
-    Keyboard.KEY_RETURN = 13;
-    Keyboard.KEY_SPACE = 32;
+    Keyboard.KEY_WINDOWS_LEFT = 91;
+    Keyboard.KEY_WINDOWS_RIGHT = 92;
+    Keyboard.KEY_SELECT = 93;
+    Keyboard.KEY_NUMPAD_0 = 96;
+    Keyboard.KEY_NUMPAD_1 = 97;
+    Keyboard.KEY_NUMPAD_2 = 98;
+    Keyboard.KEY_NUMPAD_3 = 99;
+    Keyboard.KEY_NUMPAD_4 = 100;
+    Keyboard.KEY_NUMPAD_5 = 101;
+    Keyboard.KEY_NUMPAD_6 = 102;
+    Keyboard.KEY_NUMPAD_7 = 103;
+    Keyboard.KEY_NUMPAD_8 = 104;
+    Keyboard.KEY_NUMPAD_9 = 105;
     return Keyboard;
 })();
 //# sourceMappingURL=input.js.map

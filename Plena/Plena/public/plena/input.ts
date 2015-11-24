@@ -1,4 +1,6 @@
-﻿class Mouse {
+﻿//add more keys
+
+class Mouse {
     static MOUSE_LEFT = 0
     static MOUSE_RIGHT = 1
     static MOUSE_MIDDLE = 2
@@ -59,10 +61,26 @@ class Keyboard {
     private static keyPressedCalls = new DeepTreeMap<number, () => void>(NUMBER_COMPARE);
     private static keyReleasedCalls = new DeepTreeMap<number, () => void>(NUMBER_COMPARE);
 
+    static KEY_BACKSPACE = 8;
+    static KEY_TAB = 9;
+    static KEY_ENTER = 13;
+    static KEY_SHIFT = 16;
+    static KEY_CTRL = 17;
+    static KEY_ALT = 18;
+    static KEY_BREAK = 19;
+    static KEY_CAPS = 20;
+    static KEY_ESCAPE = 27;
+    static KEY_SPACE = 32;
+    static KEY_PAGE_UP = 33;
+    static KEY_PAGE_DOWN = 34;
+    static KEY_END = 35;
+    static KEY_HOME = 36;
     static KEY_LEFT = 37
     static KEY_UP = 38
     static KEY_RIGHT = 39
     static KEY_DOWN = 40
+    static KEY_INSERT = 45;
+    static KEY_DELETE = 46;
     static KEY_0 = 48;
     static KEY_1 = 49;
     static KEY_2 = 50;
@@ -99,8 +117,19 @@ class Keyboard {
     static KEY_X = 88;
     static KEY_Y = 89;
     static KEY_Z = 90;
-    static KEY_RETURN = 13;
-    static KEY_SPACE = 32;
+    static KEY_WINDOWS_LEFT = 91;
+    static KEY_WINDOWS_RIGHT = 92;
+    static KEY_SELECT = 93;
+    static KEY_NUMPAD_0 = 96;
+    static KEY_NUMPAD_1 = 97;
+    static KEY_NUMPAD_2 = 98;
+    static KEY_NUMPAD_3 = 99;
+    static KEY_NUMPAD_4 = 100;
+    static KEY_NUMPAD_5 = 101;
+    static KEY_NUMPAD_6 = 102;
+    static KEY_NUMPAD_7 = 103;
+    static KEY_NUMPAD_8 = 104;
+    static KEY_NUMPAD_9 = 105;
 
     static listenForKeysCustom(keyDown, keyUp) {
         document.onkeydown = keyDown;
