@@ -105,7 +105,6 @@ var TreeSet = (function (_super) {
             node.right = this.putAt(node.right, key);
         else
             node.key;
-        console.log(comp);
         if (this.isRed(node.right) && !this.isRed(node.left))
             node = this.leftRot(node);
         if (this.isRed(node.left) && this.isRed(node.left.left))
@@ -398,7 +397,6 @@ var TreeMap = (function (_super) {
             node.right = this.putAt(node.right, key, value);
         else
             node.value = value;
-        console.log(comp);
         if (this.isRed(node.right) && !this.isRed(node.left))
             node = this.leftRot(node);
         if (this.isRed(node.left) && this.isRed(node.left.left))

@@ -126,7 +126,7 @@ class Grix {
     private setupAnimation(ths: Grix, sprite: Sprite): (texture: Img) => void {
         return function (texture: Img) {
             ths.defaultAnim = sprite.arbAnimName();
-            ths.setActiveAnimation(ths.defaultImg);
+            ths.setActiveAnimation(ths.defaultAnim);
         }
     }
     private textureLoaded(ths: Grix): (texture: Img) => void {

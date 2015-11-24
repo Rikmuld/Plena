@@ -117,7 +117,7 @@ var Grix = (function () {
     Grix.prototype.setupAnimation = function (ths, sprite) {
         return function (texture) {
             ths.defaultAnim = sprite.arbAnimName();
-            ths.setActiveAnimation(ths.defaultImg);
+            ths.setActiveAnimation(ths.defaultAnim);
         };
     };
     Grix.prototype.textureLoaded = function (ths) {

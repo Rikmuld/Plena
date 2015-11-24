@@ -39,19 +39,25 @@ var TextureManager = (function () {
         var retImg = new Img(texture, id);
         var img = new Image();
         img.onload = function () {
-            var c = document.createElement('canvas');
-            var size = Math.pow(2, Math.ceil(MMath.logN(2, img.height > img.width ? img.height : img.width)));
-            c.width = size;
-            c.height = size;
-            var ctx = c.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            var nwSrc = c.toDataURL();
-            var tex = new Image();
-            retImg.imgLoaded(size, 0, 0, img.width, img.height);
-            tex.onload = function () {
-                _this.handleTextureLoaded(tex, texture, repeat, smooth);
-            };
-            tex.src = nwSrc;
+            if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
+                retImg.imgLoaded(size, 0, 0, img.width, img.height);
+                _this.handleTextureLoaded(img, texture, repeat, smooth);
+            }
+            else {
+                var c = document.createElement('canvas');
+                var size = Math.pow(2, Math.ceil(MMath.logN(2, img.height > img.width ? img.height : img.width)));
+                c.width = size;
+                c.height = size;
+                var ctx = c.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                var nwSrc = c.toDataURL();
+                var tex = new Image();
+                retImg.imgLoaded(size, 0, 0, img.width, img.height);
+                tex.onload = function () {
+                    _this.handleTextureLoaded(tex, texture, repeat, smooth);
+                };
+                tex.src = nwSrc;
+            }
         };
         img.src = src;
         return retImg;
@@ -101,7 +107,6 @@ var Img = (function () {
     function Img(texture, id) {
         this.callbackLoaded = new Queue();
         this.isLoaded = false;
-        console.log(id + "H");
         this.texture = texture;
         this.id = id;
     }

@@ -9,7 +9,7 @@
             .rect(100, 100)
             .addSprite(Plena.loadSpriteFile("marbles.jpg").addImgs([BLACK, WHITE], 0, 0, 100, 100, 2))
             .populate();
-        Keyboard.addPressedEvent(Keyboard.KEY_SPACE, increseCount);
+        Keyboard.addPressedEvent(increseCount, Keyboard.KEY_SPACE);
     }
 
     export function update() {

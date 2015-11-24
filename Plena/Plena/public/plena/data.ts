@@ -108,8 +108,6 @@ class TreeSet<Item> extends Comparable<Item> {
         else if (comp > 0) node.right = this.putAt(node.right, key);
         else node.key;
 
-        console.log(comp)
-
         if (this.isRed(node.right) && !this.isRed(node.left)) node = this.leftRot(node);
         if (this.isRed(node.left) && this.isRed(node.left.left)) node = this.rightRot(node);
         if (this.isRed(node.left) && this.isRed(node.right)) this.flipColors(node);
@@ -394,8 +392,6 @@ class TreeMap<Key, Value> extends Comparable<Key> {
         if (comp < 0) node.left = this.putAt(node.left, key, value);
         else if (comp > 0) node.right = this.putAt(node.right, key, value);
         else node.value = value;
-
-        console.log(comp)
 
         if (this.isRed(node.right) && !this.isRed(node.left)) node = this.leftRot(node);
         if (this.isRed(node.left) && this.isRed(node.left.left)) node = this.rightRot(node);

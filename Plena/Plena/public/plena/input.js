@@ -73,11 +73,21 @@ var Keyboard = (function () {
     Keyboard.isKeyDown = function (key) {
         return Keyboard.currentlyPressedKeys[key];
     };
-    Keyboard.addReleasedEvent = function (key, callback) {
-        Keyboard.keyReleasedCalls.put(key, callback);
+    Keyboard.addReleasedEvent = function (callback) {
+        var key = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            key[_i - 1] = arguments[_i];
+        }
+        for (var i = 0; i < key.length; i++)
+            Keyboard.keyReleasedCalls.put(key[i], callback);
     };
-    Keyboard.addPressedEvent = function (key, callback) {
-        Keyboard.keyPressedCalls.put(key, callback);
+    Keyboard.addPressedEvent = function (callback) {
+        var key = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            key[_i - 1] = arguments[_i];
+        }
+        for (var i = 0; i < key.length; i++)
+            Keyboard.keyPressedCalls.put(key[i], callback);
     };
     Keyboard.currentlyPressedKeys = new Array(128);
     Keyboard.keyPressedCalls = new DeepTreeMap(NUMBER_COMPARE);

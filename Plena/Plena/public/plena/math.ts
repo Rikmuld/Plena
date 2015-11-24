@@ -344,4 +344,9 @@ module MMath {
     export function logN(base, num) {
         return Math.log(num) / Math.log(base);
     }
+
+    export function isPowerOf2(n: number): boolean {
+        if (n == 0) return false;
+        else return (n & (n - 1)) == 0
+    }
 }

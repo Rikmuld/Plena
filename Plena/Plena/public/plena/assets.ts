@@ -40,19 +40,24 @@
 
         var img = new Image();
         img.onload = () => {
-            var c = document.createElement('canvas');
-            var size = Math.pow(2, Math.ceil(MMath.logN(2, img.height > img.width ? img.height:img.width)))
-            c.width = size;
-            c.height = size;
-            var ctx = c.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            var nwSrc = c.toDataURL();
-            var tex = new Image();
-            retImg.imgLoaded(size, 0, 0, img.width, img.height);
-            tex.onload = () => {
-                this.handleTextureLoaded(tex, texture, repeat, smooth);
+            if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
+                retImg.imgLoaded(size, 0, 0, img.width, img.height);
+                this.handleTextureLoaded(img, texture, repeat, smooth);
+            } else {
+                var c = document.createElement('canvas');
+                var size = Math.pow(2, Math.ceil(MMath.logN(2, img.height > img.width ? img.height : img.width)))
+                c.width = size;
+                c.height = size;
+                var ctx = c.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                var nwSrc = c.toDataURL();
+                var tex = new Image();
+                retImg.imgLoaded(size, 0, 0, img.width, img.height);
+                tex.onload = () => {
+                    this.handleTextureLoaded(tex, texture, repeat, smooth);
+                }
+                tex.src = nwSrc;
             }
-            tex.src = nwSrc;
         };
         img.src = src;
 
@@ -125,7 +130,6 @@ class Img {
     private id: string;
 
     constructor(texture, id: string) {
-        console.log(id + "H")
         this.texture = texture;
         this.id = id;
     }

@@ -132,11 +132,11 @@ class Keyboard {
         return Keyboard.currentlyPressedKeys[key];
     }
 
-    static addReleasedEvent(key: number, callback) {
-        Keyboard.keyReleasedCalls.put(key, callback);
+    static addReleasedEvent(callback, ...key: number[]) {
+        for (var i = 0; i < key.length; i++)Keyboard.keyReleasedCalls.put(key[i], callback);
     }
 
-    static addPressedEvent(key: number, callback) {
-        Keyboard.keyPressedCalls.put(key, callback);
+    static addPressedEvent(callback, ...key: number[]) {
+        for (var i = 0; i < key.length; i++)Keyboard.keyPressedCalls.put(key[i], callback);
     }
 }

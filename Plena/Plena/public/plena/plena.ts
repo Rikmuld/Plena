@@ -1,6 +1,6 @@
 ﻿var gl;
 
-//all textures loaded cheack and only then call render/update stuff
+//all textures loaded cheack and only then call render/update stuff (option)
 module Plena {
     var renderLp, updateLp: () => void;
     var canvas;
@@ -85,7 +85,6 @@ module Plena {
             if (p5) color = <number[]>p5;
             else color = [1, 1, 1, 1]
         } else if (typeof p2 == 'number') {
-            console.log("halloes")
             width = p1;
             height = p2;
             x = window.innerWidth / 2 - width / 2;

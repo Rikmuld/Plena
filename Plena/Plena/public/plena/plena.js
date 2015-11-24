@@ -1,5 +1,5 @@
 var gl;
-//all textures loaded cheack and only then call render/update stuff
+//all textures loaded cheack and only then call render/update stuff (option)
 var Plena;
 (function (Plena) {
     var renderLp, updateLp;
@@ -70,7 +70,6 @@ var Plena;
                 color = [1, 1, 1, 1];
         }
         else if (typeof p2 == 'number') {
-            console.log("halloes");
             width = p1;
             height = p2;
             x = window.innerWidth / 2 - width / 2;

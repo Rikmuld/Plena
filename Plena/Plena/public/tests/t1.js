@@ -7,7 +7,7 @@ var t1;
         cat = new Grix()
             .fromTexture(Plena.loadImg("cat.png"))
             .populate();
-        Keyboard.addPressedEvent(Keyboard.KEY_SPACE, increseCount);
+        Keyboard.addPressedEvent(increseCount, Keyboard.KEY_SPACE);
     }
     t1.setup = setup;
     function update() {
