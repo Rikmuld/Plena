@@ -315,14 +315,7 @@ module MMath {
         SEED = seed;
     }
 
-    export function random(): number;
-    export function random(min: number, max: number): number;
-    export function random(min?: number, max?: number): number {
-        if (typeof min == 'undefined') {
-            min = 0;
-            max = 1;
-        }
-
+    export function random(min: number = 0, max: number = 1): number {
         SEED = (SEED * 9301 + 49297) % 233280;
         var rnd = SEED / 233280;
 

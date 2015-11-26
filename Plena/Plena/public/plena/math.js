@@ -286,10 +286,8 @@ var MMath;
     }
     MMath.setRandomSeed = setRandomSeed;
     function random(min, max) {
-        if (typeof min == 'undefined') {
-            min = 0;
-            max = 1;
-        }
+        if (min === void 0) { min = 0; }
+        if (max === void 0) { max = 1; }
         SEED = (SEED * 9301 + 49297) % 233280;
         var rnd = SEED / 233280;
         return min + rnd * (max - min);

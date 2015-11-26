@@ -1,8 +1,13 @@
-﻿//more shapes
-//more draw modes
+﻿//mor draw modes (not fill shape but only a border, or a shape witha border, different colors, gradients etc..)
 //fonst
 //maybe key over or click events
+//add lines with width
+//add points
+//add curves
+//texture mapping for shapes
+//sef made shape with moveto (also texture mapping)
 class Grix {
+    private mode = gl.TRIANGLES;
     private customeShader: Shader;
     private matrix: MatrixHandler;
     private drawer = new Render();
@@ -57,6 +62,37 @@ class Grix {
         this.drawer.addIndieces([0, 1, 3, 1, 2, 3]);
         this.width = width;
         this.height = height;
+        this.mode = gl.TRIANGLES;
+        return this;
+    }
+    line(x: number, y: number, x2: number = 0, y2: number = 0):Grix {
+        this.width = Math.abs(x - x2);
+        this.height = Math.abs(y - y2);
+        this.drawer.addVertexes(this.getShader(), [0, 0, this.width, this.height]);
+        this.drawer.addIndieces([0, 1]);
+        this.mode = gl.LINES;
+        return this;
+    }
+    circle(radius: number, parts: number = 35): Grix {
+        return this.ellipse(radius, radius, parts);
+    }
+    polygon(radius: number, corners: number): Grix {
+        return this.circle(radius, corners);
+    }
+    ellipse(radiusX: number, radiusY: number, parts: number = 30):Grix {
+        var coords = [radiusX, radiusY];
+        var indicies = [0];
+        for (var i = 0; i < parts + 1; i++) {
+            var angle = i * ((Math.PI * 2) / parts);
+            coords.push(radiusX + Math.cos(angle) * radiusX);
+            coords.push(radiusY + Math.sin(angle) * radiusY);
+            indicies.push(i+1);
+        }
+        this.drawer.addVertexes(this.getShader(), coords);
+        this.drawer.addIndieces(indicies);
+        this.width = radiusX * 2;
+        this.height = radiusY * 2;
+        this.mode = gl.TRIANGLE_FAN;
         return this;
     }
     colorV3(color: number[]): Grix {
@@ -163,7 +199,7 @@ class Grix {
         if (this.angle != 0) {
             transform = Matrix4.translate(transform, !this.relRotP ? this.prX - this.xT - centerX : this.prX * (centerX * 2), !this.relRotP ? this.prY - this.yT - centerY : this.prY * (centerY * 2))
             transform = Matrix4.rotate(transform, this.angle);
-            transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT : -this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT : -this.prY * (centerY * 2))
+            transform = Matrix4.translate(transform, !this.relRotP ? - this.prX + this.xT : -centerX - this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT : - centerY - this.prY * (centerY * 2))
         }
         if (this.sXT != 1 || this.sYT != 1) transform = Matrix4.scale(transform, this.sXT * (this.mirrorX ? -1 : 1), this.sYT * (this.mirrorY ? -1 : 1));
         this.childs.enqueue(this.grixc(transform, this.color, this.img, this.anim, this.animStep));
@@ -223,6 +259,9 @@ class Grix {
     rotateDeg(angle: number) {
         this.rotate(MMath.toRad(angle));
     }
+    rotatToDeg(angle: number) {
+        this.rotateTo(MMath.toRad(angle));
+    }
     clean() {
         this.xT = 0;
         this.yT = 0;
@@ -260,7 +299,7 @@ class Grix {
                 this.getShader().getMatHandler().setUVMatrix(mat);
             }
             if (this.texture == null) this.getShader().setVec4(Shader.COLOR, child.color)
-            if ((this.texture != null && this.loadedTex == true) || this.texture == null) this.drawer.drawElements(0, gl.TRIANGLES)
+            if ((this.texture != null && this.loadedTex == true) || this.texture == null) this.drawer.drawElements(0, this.mode)
         }
         this.end();
         this.clean();
