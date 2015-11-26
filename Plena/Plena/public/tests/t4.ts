@@ -11,8 +11,8 @@
 
     var x = 200;
     var y = 200;
-    var width: number;
-    var height: number;
+    var width = 100;
+    var height = 100;
 
     export function setup() {
         var catSprite = Plena.loadSpriteFile("cats.png");
@@ -32,7 +32,7 @@
     export function update() {
         animation += 0.1;
 
-        x += 2*Math.cos((Math.PI / 2) * direction);
+        x += 2 * Math.cos((Math.PI / 2) * direction);
         y += 2 * Math.sin((Math.PI / 2) * direction);
 
         if (x > 500) x = -width
@@ -49,15 +49,11 @@
         }
 
         cat.clean();
-        cat.setPivotMove(0, 0)
-        cat.scaleToSize(100, 100)
+        cat.scaleToSize(width, height)
         cat.moveTo(x, y)
         cat.animationStep(Math.floor(animation))
         cat.setActiveAnimation(cats[currCat] + dir[dirMap[direction]])
         cat.render();
-
-        width = cat.getWidth();
-        height = cat.getHeight();
     }
 
     function loadCat(color: number, sprite: Sprite) {

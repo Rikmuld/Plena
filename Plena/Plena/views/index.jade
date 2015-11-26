@@ -4,4 +4,13 @@ block title
     title= num
 
 block append scripts
-    script(src="tests/t" + num + ".js")
+    if locals.num
+        script(src="tests/t" + num + ".js")
+
+block body
+    if !locals.num
+        - var file = 0
+        while file < maxNum
+            - file++
+            a(href=file) Test Nr. #{file} : #{desc[file-1]}
+            br
