@@ -11,9 +11,9 @@ var TextureManager = (function () {
     TextureManager.prototype.getTexture = function (key) {
         return this.textures.apply(key);
     };
-    TextureManager.prototype.loadSprite = function (src, key, repeat, smooth) {
+    TextureManager.prototype.loadSprite = function (src, key, safe, repeat, smooth) {
         if (!this.hasImg(key)) {
-            return new Sprite(this.initTexture(key, src, repeat ? true : false, smooth ? true : false));
+            return new Sprite(this.initTexture(key, src, repeat ? true : false, smooth ? true : false), safe);
         }
         else
             console.log("Sprite key already exsists!");
@@ -40,7 +40,7 @@ var TextureManager = (function () {
         var img = new Image();
         img.onload = function () {
             if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
-                retImg.imgLoaded(size, 0, 0, img.width, img.height);
+                retImg.imgLoaded(size, 0, 0, img.width, img.height, false);
                 _this.handleTextureLoaded(img, texture, repeat, smooth);
             }
             else {
@@ -52,7 +52,7 @@ var TextureManager = (function () {
                 ctx.drawImage(img, 0, 0);
                 var nwSrc = c.toDataURL();
                 var tex = new Image();
-                retImg.imgLoaded(size, 0, 0, img.width, img.height);
+                retImg.imgLoaded(size, 0, 0, img.width, img.height, false);
                 tex.onload = function () {
                     _this.handleTextureLoaded(tex, texture, repeat, smooth);
                 };
@@ -113,11 +113,11 @@ var Img = (function () {
     Img.prototype.getId = function () {
         return this.id;
     };
-    Img.prototype.imgLoaded = function (max, x, y, width, height) {
+    Img.prototype.imgLoaded = function (max, x, y, width, height, safe) {
         this.size = max;
         this.width = width;
         this.height = height;
-        this.coord = new TexCoord(x, y, width, height, max, false);
+        this.coord = new TexCoord(x, y, width, height, max, safe);
         this.isLoaded = true;
         var size = this.callbackLoaded.size();
         for (var i = 0; i < size; i++) {
@@ -152,10 +152,12 @@ var Img = (function () {
     return Img;
 })();
 var Sprite = (function () {
-    function Sprite(img) {
+    function Sprite(img, safe) {
         this.img = img;
         this.subImages = new TreeMap(STRING_COMPARE);
         this.id = img.getId();
+        if (safe)
+            this.safe = true;
     }
     Sprite.prototype.onLoaded = function (call) {
         this.img.onLoaded(call);
@@ -216,7 +218,8 @@ var Sprite = (function () {
                 var colom = vertical ? i % rowCount : Math.floor(i / rowCount);
                 var row = vertical ? Math.floor(i / rowCount) : i % rowCount;
                 var subImg = new Img(img.getGLTexture(), key);
-                subImg.imgLoaded(img.max(), x + row * width, y + colom * height, width, height);
+                console.log(ths.safe);
+                subImg.imgLoaded(img.max(), x + row * width, y + colom * height, width, height, ths.safe);
                 if (!isAnim)
                     ths.subImages.put(key, subImg);
                 else
@@ -231,8 +234,9 @@ var Sprite = (function () {
     };
     Sprite.prototype.do_addImg = function (ths, key, x, y, width, height) {
         return function (img) {
+            console.log(ths.safe);
             var subImg = new Img(img.getGLTexture(), key);
-            subImg.imgLoaded(img.max(), x, y, width, height);
+            subImg.imgLoaded(img.max(), x, y, width, height, ths.safe);
             ths.subImages.put(key, subImg);
         };
     };

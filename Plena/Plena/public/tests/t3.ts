@@ -18,7 +18,7 @@
         Keyboard.addPressedEvent(switchTopDown, Keyboard.KEY_Q)
     }
 
-    export function update() {
+    export function update(delta: number) {
         animation += 0.1;
         x += direction * 2;
 
@@ -26,7 +26,7 @@
         if (x < -cat.getWidth()) x = 500;
     }
 
-    export function render() {
+    export function render(delta: number) {
         cat.setPivotMove(0, 0.5)
         cat.scaleToSize(100, 100)
         cat.moveTo(x, 250)

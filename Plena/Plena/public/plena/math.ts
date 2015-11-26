@@ -318,7 +318,7 @@ module MMath {
     export function random(): number;
     export function random(min: number, max: number): number;
     export function random(min?: number, max?: number): number {
-        if (typeof min == undefined) {
+        if (typeof min == 'undefined') {
             min = 0;
             max = 1;
         }

@@ -285,7 +285,7 @@ var MMath;
     }
     MMath.setRandomSeed = setRandomSeed;
     function random(min, max) {
-        if (typeof min == undefined) {
+        if (typeof min == 'undefined') {
             min = 0;
             max = 1;
         }

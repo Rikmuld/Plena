@@ -1,6 +1,4 @@
-﻿//add more keys
-
-class Mouse {
+﻿class Mouse {
     static MOUSE_LEFT = 0
     static MOUSE_RIGHT = 1
     static MOUSE_MIDDLE = 2
@@ -68,7 +66,7 @@ class Keyboard {
     static KEY_CTRL = 17;
     static KEY_ALT = 18;
     static KEY_BREAK = 19;
-    static KEY_CAPS = 20;
+    static KEY_CAPS_LOCK = 20;
     static KEY_ESCAPE = 27;
     static KEY_SPACE = 32;
     static KEY_PAGE_UP = 33;
@@ -130,6 +128,37 @@ class Keyboard {
     static KEY_NUMPAD_7 = 103;
     static KEY_NUMPAD_8 = 104;
     static KEY_NUMPAD_9 = 105;
+    static KEY_MULTIPLY = 106;
+    static KEY_ADD = 107;
+    static KEY_SUBSTRACT = 108;
+    static KEY_POINT = 109;
+    static KEY_DECIMAL_POINT = 110;
+    static DEVIDE = 111;
+    static KEY_F1 = 112
+    static KEY_F2 = 113
+    static KEY_F3 = 114
+    static KEY_F4 = 115
+    static KEY_F5 = 116
+    static KEY_F6 = 117
+    static KEY_F7 = 118
+    static KEY_F8 = 119
+    static KEY_F9 = 120
+    static KEY_F10 = 121
+    static KEY_F11 = 122
+    static KEY_F12 = 123
+    static KEY_NUM_LOCK = 144
+    static KEY_SCROLL_LOCK = 145
+    static KEY_SEMI_COLON = 186
+    static KEY_EQUAL_SIGN = 187
+    static KEY_COMMA = 188
+    static KEY_DASH = 189
+    static KEY_PERIOD = 190
+    static KEY_SLASH_FORWARD = 191
+    static KEY_GRAVE_ACCENT = 192
+    static KEY_BRACKET_OPEN = 219
+    static KEY_SLASH_BACK = 220
+    static KEY_BRACKET_CLOSE = 221
+    static KEY_QUOTE_SINGLE = 222
 
     static listenForKeysCustom(keyDown, keyUp) {
         document.onkeydown = keyDown;
