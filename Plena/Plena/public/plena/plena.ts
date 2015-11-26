@@ -1,9 +1,12 @@
 ﻿var gl;
 
 //all textures loaded cheack and only then call render/update stuff (option)
+//fullscreen option
+//loader at start option
 module Plena {
-    var renderLp, updateLp: () => void;
+    var renderLp, updateLp: (delta: number) => void;
     var canvas;
+    var lastTick:number;
 
     var shadColFrag = "\
         precision highp float; \
@@ -67,13 +70,15 @@ module Plena {
     var textureManager: TextureManager;
     var audioManager: AudioManager;
 
-    export function init(setupFunc: () => void, renderLoop: () => void, updateLoop: () => void);
-    export function init(setupFunc: () => void, renderLoop: () => void, updateLoop: () => void, x: number, y: number, width: number, height: number);
-    export function init(setupFunc: () => void, renderLoop: () => void, updateLoop: () => void, width: number, height: number);
-    export function init(setupFunc: () => void, renderLoop: () => void, updateLoop: () => void, width: number, height: number, color: number[]);
-    export function init(setupFunc: () => void, renderLoop: () => void, updateLoop: () => void, color: number[]);
-    export function init(setupFunc: () => void, renderLoop: () => void, updateLoop: () => void, x: number, y: number, width: number, height: number, color: number[]);
-    export function init(setupFunc: () => void, renderLoop: () => void, updateLoop: () => void, p1?: number|number[], p2?: number, p3?: number|number[], p4?: number, p5?: number[]) {
+    var camera: Camera;
+
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: number[]);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: number[]);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: number[]);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number|number[], p2?: number, p3?: number|number[], p4?: number, p5?: number[]) {
         var width, height, x, y: number;
         var color: number[];
 
@@ -134,14 +139,17 @@ module Plena {
 
         renderLp = renderLoop;
         updateLp = updateLoop;
+
+        lastTick = Date.now();
+
         setupFunc();
         looper()
     }
 
     //img filters
-    export function loadSpriteFile(src: string, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
+    export function loadSpriteFile(src: string, safe?:boolean, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
         if (!id) id = src.split("/").pop().split('.')[0];
-        return textureManager.loadSprite(src, id, repeat, smooth);
+        return textureManager.loadSprite(src, id, safe?true:false, repeat, smooth);
     }
 
     export function loadImg(src: string, repeat?: boolean, smooth?: boolean, id?: string): Img {
@@ -152,7 +160,16 @@ module Plena {
     export function getImg(key: string): Img {
         return textureManager.getTexture(key);
     }
-
+    export function bindCameraTo(entity: Entity) {
+        if (camera == null) camera = new Camera(entity);
+        else camera.bindTo(entity);
+    }
+    export function changeCamera(camera:Camera) {
+        camera = camera;
+    }
+    export function getCamera(): Camera {
+        return camera;
+    }
     export function changeProjection(left: number, bottom: number);
     export function changeProjection(left: number, right: number, bottom: number, top: number);
     export function changeProjection(left: number, right: number, bottom?: number, top?: number) {
@@ -170,8 +187,14 @@ module Plena {
     function looper() {
         GLF.clearBufferColor()
 
-        renderLp();
-        updateLp();
+        var tick = Date.now();
+        var delta = tick - lastTick;
+        lastTick = tick;
+
+        if (camera != null) camera.update();
+
+        renderLp(delta);
+        updateLp(delta);
         spriteManager.render();
         requestAnimationFrame(looper);
     }

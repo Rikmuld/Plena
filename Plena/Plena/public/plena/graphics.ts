@@ -1,5 +1,6 @@
 ﻿//more shapes
 //more draw modes
+//fonst
 //maybe key over or click events
 class Grix {
     private customeShader: Shader;

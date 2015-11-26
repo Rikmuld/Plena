@@ -1,7 +1,7 @@
 ﻿module t4 {
     var cat: Grix;
 
-    var cats = ["catBlack", "catBlue", "catOrange", "catWhite"]
+    var cats = ["catBlack", "catBlue", "catWhite", "catOrange"]
     var dir = ["_back", "_left", "_right", "_top"]
     var dirMap = [2, 0, 1, 3]
 
@@ -11,11 +11,11 @@
 
     var x = 200;
     var y = 200;
-    var width = 100;
-    var height = 100;
+    var width: number;
+    var height: number;
 
     export function setup() {
-        var catSprite = Plena.loadSpriteFile("cats.png");
+        var catSprite = Plena.loadSpriteFile("cats.png", true);
         for (var i = 0; i < 4; i++)loadCat(i, catSprite)
 
         cat = new Grix()
@@ -29,11 +29,11 @@
         Keyboard.addPressedEvent(swich, Keyboard.KEY_SPACE)
     }
 
-    export function update() {
+    export function update(delta: number) {
         animation += 0.1;
 
-        x += 2 * Math.cos((Math.PI / 2) * direction);
-        y += 2 * Math.sin((Math.PI / 2) * direction);
+        x += 0.1 * delta * Math.cos((Math.PI / 2) * direction);
+        y += 0.1 * delta * Math.sin((Math.PI / 2) * direction);
 
         if (x > 500) x = -width
         else if (x < -width)x = 500;
@@ -41,7 +41,7 @@
         else if (y < -height) y = 500;
     }
 
-    export function render() {
+    export function render(delta: number) {
         for (var i = 0; i < 4; i++) {
             cat.moveTo(250 - cat.getWidth() * 2 + cat.getWidth() * i, 0);
             cat.setActiveImg(cats[i])
@@ -49,11 +49,15 @@
         }
 
         cat.clean();
-        cat.scaleToSize(width, height)
+        cat.setPivotMove(0, 0)
+        cat.scaleToSize(100, 100)
         cat.moveTo(x, y)
         cat.animationStep(Math.floor(animation))
         cat.setActiveAnimation(cats[currCat] + dir[dirMap[direction]])
         cat.render();
+
+        width = cat.getWidth();
+        height = cat.getHeight();
     }
 
     function loadCat(color: number, sprite: Sprite) {

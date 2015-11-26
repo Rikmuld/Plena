@@ -1,4 +1,3 @@
-//add more keys
 var Mouse = (function () {
     function Mouse() {
     }
@@ -100,7 +99,7 @@ var Keyboard = (function () {
     Keyboard.KEY_CTRL = 17;
     Keyboard.KEY_ALT = 18;
     Keyboard.KEY_BREAK = 19;
-    Keyboard.KEY_CAPS = 20;
+    Keyboard.KEY_CAPS_LOCK = 20;
     Keyboard.KEY_ESCAPE = 27;
     Keyboard.KEY_SPACE = 32;
     Keyboard.KEY_PAGE_UP = 33;
@@ -162,6 +161,37 @@ var Keyboard = (function () {
     Keyboard.KEY_NUMPAD_7 = 103;
     Keyboard.KEY_NUMPAD_8 = 104;
     Keyboard.KEY_NUMPAD_9 = 105;
+    Keyboard.KEY_MULTIPLY = 106;
+    Keyboard.KEY_ADD = 107;
+    Keyboard.KEY_SUBSTRACT = 108;
+    Keyboard.KEY_POINT = 109;
+    Keyboard.KEY_DECIMAL_POINT = 110;
+    Keyboard.DEVIDE = 111;
+    Keyboard.KEY_F1 = 112;
+    Keyboard.KEY_F2 = 113;
+    Keyboard.KEY_F3 = 114;
+    Keyboard.KEY_F4 = 115;
+    Keyboard.KEY_F5 = 116;
+    Keyboard.KEY_F6 = 117;
+    Keyboard.KEY_F7 = 118;
+    Keyboard.KEY_F8 = 119;
+    Keyboard.KEY_F9 = 120;
+    Keyboard.KEY_F10 = 121;
+    Keyboard.KEY_F11 = 122;
+    Keyboard.KEY_F12 = 123;
+    Keyboard.KEY_NUM_LOCK = 144;
+    Keyboard.KEY_SCROLL_LOCK = 145;
+    Keyboard.KEY_SEMI_COLON = 186;
+    Keyboard.KEY_EQUAL_SIGN = 187;
+    Keyboard.KEY_COMMA = 188;
+    Keyboard.KEY_DASH = 189;
+    Keyboard.KEY_PERIOD = 190;
+    Keyboard.KEY_SLASH_FORWARD = 191;
+    Keyboard.KEY_GRAVE_ACCENT = 192;
+    Keyboard.KEY_BRACKET_OPEN = 219;
+    Keyboard.KEY_SLASH_BACK = 220;
+    Keyboard.KEY_BRACKET_CLOSE = 221;
+    Keyboard.KEY_QUOTE_SINGLE = 222;
     return Keyboard;
 })();
 //# sourceMappingURL=input.js.map

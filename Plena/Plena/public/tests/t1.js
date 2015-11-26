@@ -10,11 +10,11 @@ var t1;
         Keyboard.addPressedEvent(increseCount, Keyboard.KEY_SPACE);
     }
     t1.setup = setup;
-    function update() {
+    function update(delta) {
         rotate += 0.05;
     }
     t1.update = update;
-    function render() {
+    function render(delta) {
         var multiple = (Keyboard.isKeyDown(Keyboard.KEY_D)) ? 2 : 1;
         cat.scaleToSize(10, 10);
         cat.setPivotMove(0.5, 0);

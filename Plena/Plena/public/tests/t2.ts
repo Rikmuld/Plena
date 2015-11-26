@@ -12,11 +12,11 @@
         Keyboard.addPressedEvent(increseCount, Keyboard.KEY_SPACE);
     }
 
-    export function update() {
+    export function update(delta: number) {
 
     }
 
-    export function render() {
+    export function render(delta: number) {
         for (var i = 0; i < count; i++) {
             marbles.moveTo((i % 5) * 100, 100 * Math.floor(i / 5));
             marbles.setActiveImg(Keyboard.isKeyDown(Keyboard.KEY_I) ^ (i & 1) ?  WHITE : BLACK);

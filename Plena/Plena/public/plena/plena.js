@@ -1,9 +1,12 @@
 var gl;
 //all textures loaded cheack and only then call render/update stuff (option)
+//fullscreen option
+//loader at start option
 var Plena;
 (function (Plena) {
     var renderLp, updateLp;
     var canvas;
+    var lastTick;
     var shadColFrag = "\
         precision highp float; \
         \
@@ -58,6 +61,7 @@ var Plena;
     var spriteManager;
     var textureManager;
     var audioManager;
+    var camera;
     function init(setupFunc, renderLoop, updateLoop, p1, p2, p3, p4, p5) {
         var width, height, x, y;
         var color;
@@ -116,15 +120,16 @@ var Plena;
         spriteManager.addShader(textureShader);
         renderLp = renderLoop;
         updateLp = updateLoop;
+        lastTick = Date.now();
         setupFunc();
         looper();
     }
     Plena.init = init;
     //img filters
-    function loadSpriteFile(src, repeat, smooth, id) {
+    function loadSpriteFile(src, safe, repeat, smooth, id) {
         if (!id)
             id = src.split("/").pop().split('.')[0];
-        return textureManager.loadSprite(src, id, repeat, smooth);
+        return textureManager.loadSprite(src, id, safe ? true : false, repeat, smooth);
     }
     Plena.loadSpriteFile = loadSpriteFile;
     function loadImg(src, repeat, smooth, id) {
@@ -137,6 +142,21 @@ var Plena;
         return textureManager.getTexture(key);
     }
     Plena.getImg = getImg;
+    function bindCameraTo(entity) {
+        if (camera == null)
+            camera = new Camera(entity);
+        else
+            camera.bindTo(entity);
+    }
+    Plena.bindCameraTo = bindCameraTo;
+    function changeCamera(camera) {
+        camera = camera;
+    }
+    Plena.changeCamera = changeCamera;
+    function getCamera() {
+        return camera;
+    }
+    Plena.getCamera = getCamera;
     function changeProjection(left, right, bottom, top) {
         var ortho;
         if (typeof bottom == 'number')
@@ -151,8 +171,13 @@ var Plena;
     Plena.changeProjection = changeProjection;
     function looper() {
         GLF.clearBufferColor();
-        renderLp();
-        updateLp();
+        var tick = Date.now();
+        var delta = tick - lastTick;
+        lastTick = tick;
+        if (camera != null)
+            camera.update();
+        renderLp(delta);
+        updateLp(delta);
         spriteManager.render();
         requestAnimationFrame(looper);
     }

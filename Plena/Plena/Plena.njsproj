@@ -40,7 +40,9 @@
     <TypeScriptCompile Include="public\plena\input.ts" />
     <TypeScriptCompile Include="public\plena\math.ts" />
     <TypeScriptCompile Include="public\plena\plena.ts" />
+    <TypeScriptCompile Include="public\plena\world.ts" />
     <TypeScriptCompile Include="public\tests\t1.ts" />
+    <TypeScriptCompile Include="public\tests\t5.ts" />
     <TypeScriptCompile Include="public\tests\t4.ts" />
     <TypeScriptCompile Include="public\tests\t3.ts" />
     <TypeScriptCompile Include="public\tests\t2.ts" />
