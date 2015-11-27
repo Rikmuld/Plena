@@ -21,13 +21,16 @@
         cat.scaleToSize(10, 10);
         cat.setPivotMove(0.5, 0);
         cat.setPivotRot(250, 250, false);
-        cat.moveTo(250, 0);
+        cat.moveTo(250, 0); 
         cat.rotate(rotate);
-        for (var i = 0; i < 500 * multiple; i++) {
+
+        var time = Date.now();
+        for (var i = 0; i < 5000 * multiple; i++) {
             cat.render();
             cat.rotate((Math.PI * 2) / count);
-            cat.move(0, 250 / 500);
+            cat.move(0, 250 / 5000);
         }
+        console.log(Date.now()-time)
     }
 
     function increseCount() {

@@ -71,6 +71,8 @@ module Plena {
     var audioManager: AudioManager;
 
     var camera: Camera;
+    var projection: Vec4;
+    var projectionSave: Vec4;
 
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number);
@@ -146,17 +148,24 @@ module Plena {
         looper()
     }
 
-    //img filters
+    //img filters?
     export function loadSpriteFile(src: string, safe?:boolean, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
         if (!id) id = src.split("/").pop().split('.')[0];
         return textureManager.loadSprite(src, id, safe?true:false, repeat, smooth);
     }
-
     export function loadImg(src: string, repeat?: boolean, smooth?: boolean, id?: string): Img {
         if (!id) id = src.split("/").pop().split('.')[0];
         return textureManager.loadImg(src, id, repeat, smooth);
     }
-
+    export function mkWritableImg(width: number, height: number, smooth?:boolean, repeat?:boolean): WritableTexture {
+        return new WritableTexture(width, height, smooth, repeat);
+    }
+    export function saveProjection() {
+        projectionSave = projection;
+    }
+    export function restoreProjection() {
+        changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3])
+    }
     export function getImg(key: string): Img {
         return textureManager.getTexture(key);
     }
@@ -175,9 +184,14 @@ module Plena {
     export function changeProjection(left: number, right: number, bottom?: number, top?: number) {
         var ortho: Mat4;
 
-        if (typeof bottom == 'number') ortho = Matrix4.ortho(left, right, bottom, top);
-        else ortho = Matrix4.ortho(0, left, right, 0);
-
+        if (typeof bottom == 'number') {
+            ortho = Matrix4.ortho(left, right, bottom, top);
+            projection = [left, right, bottom, top];
+        } else {
+            ortho = Matrix4.ortho(0, left, right, 0);
+            projection = [0, left, right, 0];
+        }
+        
         colorShader.bind();
         colorShader.getMatHandler().setProjectionMatrix(ortho);
         textureShader.bind();
@@ -197,6 +211,10 @@ module Plena {
         updateLp(delta);
         spriteManager.render();
         requestAnimationFrame(looper);
+    }
+
+    export function renderAll() {
+        spriteManager.render();
     }
 
     export function getBasicShader(typ: ShaderType): Shader {
@@ -291,3 +309,4 @@ module GLF {
         else gl.disable(gl.BLEND);
     }
 }
+

@@ -294,11 +294,11 @@ var MMath;
     }
     MMath.random = random;
     function toRad(deg) {
-        return deg * TO_DEG;
+        return deg * TO_RAD;
     }
     MMath.toRad = toRad;
     function toDeg(rad) {
-        return rad * TO_RAD;
+        return rad * TO_DEG;
     }
     MMath.toDeg = toDeg;
     function mod(num, max) {

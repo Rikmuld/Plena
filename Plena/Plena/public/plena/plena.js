@@ -62,6 +62,8 @@ var Plena;
     var textureManager;
     var audioManager;
     var camera;
+    var projection;
+    var projectionSave;
     function init(setupFunc, renderLoop, updateLoop, p1, p2, p3, p4, p5) {
         var width, height, x, y;
         var color;
@@ -125,7 +127,7 @@ var Plena;
         looper();
     }
     Plena.init = init;
-    //img filters
+    //img filters?
     function loadSpriteFile(src, safe, repeat, smooth, id) {
         if (!id)
             id = src.split("/").pop().split('.')[0];
@@ -138,6 +140,18 @@ var Plena;
         return textureManager.loadImg(src, id, repeat, smooth);
     }
     Plena.loadImg = loadImg;
+    function mkWritableImg(width, height, smooth, repeat) {
+        return new WritableTexture(width, height, smooth, repeat);
+    }
+    Plena.mkWritableImg = mkWritableImg;
+    function saveProjection() {
+        projectionSave = projection;
+    }
+    Plena.saveProjection = saveProjection;
+    function restoreProjection() {
+        changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3]);
+    }
+    Plena.restoreProjection = restoreProjection;
     function getImg(key) {
         return textureManager.getTexture(key);
     }
@@ -159,10 +173,14 @@ var Plena;
     Plena.getCamera = getCamera;
     function changeProjection(left, right, bottom, top) {
         var ortho;
-        if (typeof bottom == 'number')
+        if (typeof bottom == 'number') {
             ortho = Matrix4.ortho(left, right, bottom, top);
-        else
+            projection = [left, right, bottom, top];
+        }
+        else {
             ortho = Matrix4.ortho(0, left, right, 0);
+            projection = [0, left, right, 0];
+        }
         colorShader.bind();
         colorShader.getMatHandler().setProjectionMatrix(ortho);
         textureShader.bind();
@@ -181,6 +199,10 @@ var Plena;
         spriteManager.render();
         requestAnimationFrame(looper);
     }
+    function renderAll() {
+        spriteManager.render();
+    }
+    Plena.renderAll = renderAll;
     function getBasicShader(typ) {
         switch (typ) {
             case ShaderType.COLOR: return colorShader;

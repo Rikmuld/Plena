@@ -189,20 +189,21 @@ var Grix = (function () {
     Grix.prototype.render = function () {
         if (this.texture != null && !this.loadedTex)
             return;
-        var transform = Matrix4.identity();
         var centerX = ((this.width * this.sXT) / 2);
         var centerY = ((this.height * this.sYT) / 2);
-        if (this.angle != 0)
-            transform = Matrix4.translate(transform, centerX, centerY);
-        if (this.xT != 0 || this.yT != 0)
-            transform = Matrix4.translate(transform, this.xT + (this.mirrorX ? centerX * 2 : 0), this.yT + +(this.mirrorY ? centerY * 2 : 0));
-        if (this.angle != 0) {
-            transform = Matrix4.translate(transform, !this.relRotP ? this.prX - this.xT - centerX : this.prX * (centerX * 2), !this.relRotP ? this.prY - this.yT - centerY : this.prY * (centerY * 2));
-            transform = Matrix4.rotate(transform, this.angle);
-            transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT : -centerX - this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT : -centerY - this.prY * (centerY * 2));
-        }
-        if (this.sXT != 1 || this.sYT != 1)
-            transform = Matrix4.scale(transform, this.sXT * (this.mirrorX ? -1 : 1), this.sYT * (this.mirrorY ? -1 : 1));
+        var aC = Math.cos(this.angle);
+        var aS = Math.sin(this.angle);
+        var xTr = centerX + this.xT;
+        var yTr = centerY + this.yT;
+        var mX = (this.mirrorX ? -1 : 1);
+        var mY = (this.mirrorY ? -1 : 1);
+        var x2 = !this.relRotP ? -this.prX + this.xT : -centerX - this.prX * (centerX * 2);
+        var y2 = !this.relRotP ? -this.prY + this.yT : -centerY - this.prY * (centerY * 2);
+        var x3 = this.sXT * mX;
+        var y3 = this.sYT * mY;
+        var x1 = xTr + (this.mirrorX ? centerX * 2 : 0) + (!this.relRotP ? this.prX - xTr : this.prX * (centerX * 2)) + aC * x2 + -aS * y2;
+        var y1 = yTr + (this.mirrorY ? centerY * 2 : 0) + (!this.relRotP ? this.prY - yTr : this.prY * (centerY * 2)) + aS * x2 + aC * y2;
+        var transform = [aC * x3, aS * x3, 0, 0, -aS * y3, aC * y3, 0, 0, 0, 0, 1, 0, x1, y1, 0, 1];
         this.childs.enqueue(this.grixc(transform, this.color, this.img, this.anim, this.animStep));
     };
     Grix.prototype.animationStep = function (step) {
@@ -263,7 +264,7 @@ var Grix = (function () {
     Grix.prototype.rotateDeg = function (angle) {
         this.rotate(MMath.toRad(angle));
     };
-    Grix.prototype.rotatToDeg = function (angle) {
+    Grix.prototype.rotateToDeg = function (angle) {
         this.rotateTo(MMath.toRad(angle));
     };
     Grix.prototype.clean = function () {
@@ -564,20 +565,25 @@ var Render = (function () {
     return Render;
 })();
 var Framebuffer = (function () {
-    function Framebuffer(width, height) {
+    function Framebuffer(size, smooth, repeat) {
         this.frameTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, smooth ? gl.LINEAR : gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, smooth ? gl.LINEAR_MIPMAP_NEAREST : gl.NEAREST_MIPMAP_NEAREST);
+        if (repeat)
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
         this.frameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-        this.frameBuffer.width = width;
-        this.frameBuffer.height = height;
+        this.frameBuffer.width = size;
+        this.frameBuffer.height = size;
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.frameTexture, 0);
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
+    Framebuffer.prototype.getTexture = function () {
+        return this.frameTexture;
+    };
     Framebuffer.prototype.startRenderTo = function () {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -587,7 +593,7 @@ var Framebuffer = (function () {
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+        gl.viewport(0, 0, Plena.width, Plena.height);
     };
     Framebuffer.prototype.bindTexture = function () {
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
