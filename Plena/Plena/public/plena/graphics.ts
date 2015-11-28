@@ -107,11 +107,14 @@ class Grix {
         this.mode = gl.TRIANGLES;
         return this;
     }
-    line(x: number, y: number, x2: number = 0, y2: number = 0):Grix {
-        this.width = Math.abs(x - x2);
-        this.height = Math.abs(y - y2);
-        this.drawer.addVertexes(this.getShader(), [0, 0, this.width, this.height]);
-        this.drawer.addIndieces([0, 1]);
+    line(x: number, y: number, x2: number = 0, y2: number = 0): Grix {
+        this.addVerts(x2, y2, x + x2, y + y2);
+        this.addIndiec(this.inCount + 0, this.inCount + 1);
+        this.inCount += 2;
+        this.minX = Math.min(this.minX, Math.min(x + x2, x2));
+        this.maxX = Math.max(this.maxX, Math.max(x + x2, x2));
+        this.minY = Math.min(this.minY, Math.min(y + y2, y2));
+        this.maxY = Math.max(this.maxY, Math.max(y + y2, y2));
         this.mode = gl.LINES;
         return this;
     }
@@ -121,6 +124,7 @@ class Grix {
     polygon(radius: number, corners: number): Grix {
         return this.circle(radius, corners);
     }
+    //make compoundable
     ellipse(radiusX: number, radiusY: number, parts: number = 30):Grix {
         var coords = [radiusX, radiusY];
         var indicies = [0];
