@@ -12,7 +12,7 @@
     }
 
     export function update(delta:number) {
-        rotate += 0.05;
+        rotate += 0.0025 * delta;
     }
 
     export function render(delta: number) {

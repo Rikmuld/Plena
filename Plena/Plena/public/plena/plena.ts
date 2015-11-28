@@ -123,7 +123,7 @@ module Plena {
 
         GLF.viewPort(0, 0, width, height)
         GLF.alphaBlend();
-        GLF.clearColor(color);
+        GLF.clearColor(color)
         GLF.clearBufferColor();
 
         Keyboard.listenForKeys();
@@ -199,7 +199,7 @@ module Plena {
     }
 
     function looper() {
-        GLF.clearBufferColor()
+        GLF.clearBufferColor();
 
         var tick = Date.now();
         var delta = tick - lastTick;
@@ -213,7 +213,7 @@ module Plena {
         requestAnimationFrame(looper);
     }
 
-    export function renderAll() {
+    export function forceRender() {
         spriteManager.render();
     }
 

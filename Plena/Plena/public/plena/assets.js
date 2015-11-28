@@ -274,7 +274,7 @@ var WritableTexture = (function () {
         this.frame.startRenderTo();
     };
     WritableTexture.prototype.stopWrite = function () {
-        Plena.renderAll();
+        Plena.forceRender();
         this.frame.stopRenderTo();
         Plena.restoreProjection();
     };

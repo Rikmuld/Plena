@@ -18,9 +18,8 @@
         var catSprite = Plena.loadSpriteFile("cats.png", true);
         for (var i = 0; i < 4; i++)loadCat(i, catSprite)
 
-        cat = new Grix()
-            .animationFromSprite(catSprite)
-            .populate();
+        cat = new Grix().animationFromSprite(catSprite).populate()
+            
 
         Keyboard.addPressedEvent(top, Keyboard.KEY_W, Keyboard.KEY_UP)
         Keyboard.addPressedEvent(left, Keyboard.KEY_A, Keyboard.KEY_LEFT)

@@ -333,7 +333,7 @@ class WritableTexture {
     }
 
     stopWrite() {
-        Plena.renderAll();
+        Plena.forceRender();
         this.frame.stopRenderTo();
         Plena.restoreProjection();
     }

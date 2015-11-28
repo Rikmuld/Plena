@@ -22,9 +22,9 @@ module t6 {
     var isPlaying = false;
 
     export function setup() {
-        bat = new Grix().colorRGB(100, 160, 100).rect(20, BAR_RADIUS * 2).populate();
-        ball = new Grix().circle(BALL_RADIUS).colorRGB(255, 80, 100).populate();
-
+        bat = new Grix().setColorRGB(100, 160, 100).rect(20, BAR_RADIUS * 2).populate();
+        ball = new Grix().circle(BALL_RADIUS).setColorRGB(255, 80, 100).populate();
+         
         Keyboard.addPressedEvent(startBall, Keyboard.KEY_SPACE);
         Keyboard.addPressedEvent(end, Keyboard.KEY_ESCAPE);
         Mouse.hide();
@@ -93,13 +93,13 @@ module t6 {
     export function render(delta: number) {
         GLF.clearColor([.15, .15, .15, 1])  
 
-        if (score > 0) bat.colorRGB(100 + score * 40, 160 - score * 20, 100);
-        else bat.colorRGB(100 + score * 40, 160 + score * 10, 100 - score * 50);
+        if (score > 0) bat.setColorRGB(100 + score * 40, 160 - score * 20, 100);
+        else bat.setColorRGB(100 + score * 40, 160 + score * 10, 100 - score * 50);
         bat.setPivotMove(0.5, 0.5)
         bat.moveTo(25, x1)
         bat.render();
-        if (score < 0) bat.colorRGB(100 - score * 40, 160 + score * 20, 100);
-        else bat.colorRGB(100 - score * 40, 160 - score * 10, 100 + score * 50);
+        if (score < 0) bat.setColorRGB(100 - score * 40, 160 + score * 20, 100);
+        else bat.setColorRGB(100 - score * 40, 160 - score * 10, 100 + score * 50);
         bat.moveTo(window.innerWidth - 25, x2);
         bat.render();
 

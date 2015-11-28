@@ -42,6 +42,7 @@
     <TypeScriptCompile Include="public\plena\plena.ts" />
     <TypeScriptCompile Include="public\plena\world.ts" />
     <TypeScriptCompile Include="public\tests\t1.ts" />
+    <TypeScriptCompile Include="public\tests\t8.ts" />
     <TypeScriptCompile Include="public\tests\t7.ts" />
     <TypeScriptCompile Include="public\tests\t6.ts" />
     <TypeScriptCompile Include="public\tests\t5.ts" />

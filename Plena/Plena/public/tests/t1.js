@@ -11,7 +11,7 @@ var t1;
     }
     t1.setup = setup;
     function update(delta) {
-        rotate += 0.05;
+        rotate += 0.0025 * delta;
     }
     t1.update = update;
     function render(delta) {

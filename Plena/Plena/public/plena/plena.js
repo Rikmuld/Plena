@@ -199,10 +199,10 @@ var Plena;
         spriteManager.render();
         requestAnimationFrame(looper);
     }
-    function renderAll() {
+    function forceRender() {
         spriteManager.render();
     }
-    Plena.renderAll = renderAll;
+    Plena.forceRender = forceRender;
     function getBasicShader(typ) {
         switch (typ) {
             case ShaderType.COLOR: return colorShader;

@@ -23,7 +23,7 @@
     export function render(delta: number) {
         GLF.clearColor([color[0][0], color[0][1], color[0][2], 1])
 
-        colors.colorV3([1, 1, 1])
+        colors.setColorV3([1, 1, 1])
         colors.setPivotMove(0.5, 0.5);
         colors.moveTo(1920, 1080);
         colors.render();
@@ -32,7 +32,7 @@
         colors.scaleToSize(320, 160);
         colors.moveTo(1520, 880)
         for (var i = 0; i < 4; i++) {
-            colors.colorV3(color[i])
+            colors.setColorV3(color[i])
             colors.render();
             if(i == 0)colors.move(0, 3*80)
             if (i == 1) colors.move(6 * 80, 0)

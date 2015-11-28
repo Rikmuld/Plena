@@ -1,21 +1,25 @@
 ﻿module t7 {
     var line: Grix
     var circle: Grix
-    var clock: Grix;
-    var clockTex: WritableTexture;
+    var clock: WritableGrix;
     var timeStart = Date.now();
 
     export function setup() {
-        clockTex = Plena.mkWritableImg(500, 500, true);
-
-        circle = new Grix().circle(75).colorV3([.8, .8, .8]).populate();
-        line = new Grix().line(0, 75).colorV3([.8, .8, .8]).populate();
-        clock = new Grix().fromTexture(clockTex.getImg()).populate();
+        circle = new Grix()
+            .circle(75)
+            .setColorV3([.85, .86, .87])
+            .populate();
+        line = new Grix()
+            .line(0, 75)
+            .setColorV3([.88, .89, .90])
+            .populate();
+        clock = new WritableGrix(Plena.mkWritableImg(500, 500, true));
     }
     export function update(delta: number) { }
     export function render(delta: number) {
+        clock.startWrite();
         renderClock();
-
+        clock.endWrite();
         clock.scaleToSize(200, 200)
         for (var i = 0; i < 12; i++) {
             clock.moveTo((i % 3) * 220, Math.floor(i / 3) * 220)
@@ -25,8 +29,6 @@
     }
 
     function renderClock() {
-        clockTex.startWrite();
-
         circle.setPivotMove(.5, .5)
         circle.moveTo(250, 250)
         circle.render();
@@ -44,8 +46,6 @@
         line.rotate(2 * Math.PI * ((Date.now() - timeStart) / 1000) / 60)
         line.setPivotRot(0, 1)
         line.render();
-
-        clockTex.stopWrite();
     }
 }
 
