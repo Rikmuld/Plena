@@ -6,7 +6,9 @@
     var rect: Grix
 
     export function setup() {
-
+        rect = new Grix()
+            .rect(100, 100)
+            .populate();
     }
 
     export function update(delta: number) {
@@ -14,7 +16,9 @@
     }
 
     export function render(delta: number) {
-
+        rect.moveTo(100, 100)
+        rect.scaleTo(2, 2)
+        rect.render();
     }
 }
 
