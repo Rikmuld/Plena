@@ -1,11 +1,13 @@
 ﻿//mor draw modes (not fill shape but only a border, or a shape witha border, different colors, gradients etc..)
 //fonst
 //maybe key over or click events
+//enable compound for all shapes
 //add lines with width
 //add points
 //add curves
 //texture mapping for shapes
 //sef made shape with moveto (also texture mapping)
+
 class Grix {
     private mode = gl.TRIANGLES;
     private customeShader: Shader;
@@ -13,7 +15,7 @@ class Grix {
     private drawer = new Render();
     private texture: Img|Sprite;
     private loadedTex = false;
-    private isFinal: boolean;
+    protected isFinal: boolean;
     private childs = new Queue<GrixC>();
     private width: number;
     private height: number;
@@ -36,16 +38,37 @@ class Grix {
     private relRotP: boolean = true;
     private mirrorX: boolean = false;
     private mirrorY: boolean = false;
+    private verts:Bag<number>;
+    private indiec: Bag<number>;
+    private inCount = 0;
+    private minX: number;
+    private maxX: number;
+    private minY: number;
+    private maxY: number;
 
     constructor(customShader?: Shader) {
         this.drawer = new Render();
+        this.minX = Math.min();
+        this.minY = Math.min();
+        this.maxX = Math.max();
+        this.maxY = Math.max();
+
         if (customShader) {
             this.customeShader = customShader;
             this.matrix = this.customeShader.getMatHandler();
             if (!Plena.manager().hasShader(customShader.getId())) Plena.manager().addShader(customShader);
         }
     }
-    populate():Grix {
+    populate(): Grix {
+        if (this.verts != null) {
+            this.drawer.addVertexes(this.getShader(), this.verts.toArray());
+            this.drawer.addIndieces(this.indiec.toArray());
+
+            this.height = Math.abs(this.maxY - this.minY)
+            this.width = Math.abs(this.maxX - this.minX)
+
+            console.log(this.width, this.height)
+        }
         Plena.manager().addGrix(this.getShader(), this);
         this.isFinal = true;
         this.clean();
@@ -57,7 +80,26 @@ class Grix {
     end() {
         this.drawer.end();
     }
-    rect(width: number, height: number):Grix {
+    addVerts(...verts: number[]) {
+        if (this.verts == null) this.verts = new Bag<number>();
+        this.verts.insertArray(verts);
+    }
+    addIndiec(...indiec: number[]) {
+        if (this.indiec == null) this.indiec = new Bag<number>();
+        this.indiec.insertArray(indiec);
+    }
+    rect(width: number, height: number, x = 0, y = 0): Grix {
+        this.addVerts(x, y, x + width, y, x + width, y + height, x, y + height);
+        this.addIndiec(this.inCount + 0, this.inCount + 1, this.inCount + 3, this.inCount + 1, this.inCount + 2, this.inCount + 3);
+        this.minX = Math.min(x, this.minX);
+        this.maxX = Math.max(width + x, this.maxX);
+        this.minY = Math.min(y, this.minY);
+        this.maxY = Math.max(height + y, this.maxY);
+        this.mode = gl.TRIANGLES;
+        this.inCount += 4;
+        return this;
+    }
+    private textureRect(width:number, height:number) {
         this.drawer.addVertexes(this.getShader(), [0, 0, width, 0, width, height, 0, height]);
         this.drawer.addIndieces([0, 1, 3, 1, 2, 3]);
         this.width = width;
@@ -65,11 +107,14 @@ class Grix {
         this.mode = gl.TRIANGLES;
         return this;
     }
-    line(x: number, y: number, x2: number = 0, y2: number = 0):Grix {
-        this.width = Math.abs(x - x2);
-        this.height = Math.abs(y - y2);
-        this.drawer.addVertexes(this.getShader(), [0, 0, this.width, this.height]);
-        this.drawer.addIndieces([0, 1]);
+    line(x: number, y: number, x2: number = 0, y2: number = 0): Grix {
+        this.addVerts(x2, y2, x + x2, y + y2);
+        this.addIndiec(this.inCount + 0, this.inCount + 1);
+        this.inCount += 2;
+        this.minX = Math.min(this.minX, Math.min(x + x2, x2));
+        this.maxX = Math.max(this.maxX, Math.max(x + x2, x2));
+        this.minY = Math.min(this.minY, Math.min(y + y2, y2));
+        this.maxY = Math.max(this.maxY, Math.max(y + y2, y2));
         this.mode = gl.LINES;
         return this;
     }
@@ -79,6 +124,7 @@ class Grix {
     polygon(radius: number, corners: number): Grix {
         return this.circle(radius, corners);
     }
+    //make compoundable
     ellipse(radiusX: number, radiusY: number, parts: number = 30):Grix {
         var coords = [radiusX, radiusY];
         var indicies = [0];
@@ -95,17 +141,17 @@ class Grix {
         this.mode = gl.TRIANGLE_FAN;
         return this;
     }
-    colorV3(color: number[]): Grix {
+    setColorV3(color: number[]): Grix {
         color.push(1);
         return this.setColor(color);
     }
-    colorV4(color: number[]): Grix {
+    setColorV4(color: number[]): Grix {
         return this.setColor(color);
     }
-    colorRGB(r: number, g: number, b: number): Grix {
+    setColorRGB(r: number, g: number, b: number): Grix {
         return this.setColor([r / 255, g / 255, b / 255, 1])
     }
-    colorRBGA(r: number, g: number, b: number, a: number): Grix {
+    setColorRBGA(r: number, g: number, b: number, a: number): Grix {
         return this.setColor([r / 255, g / 255, b / 255, a / 255]);
     }
     private setColor(color: Vec4):Grix {
@@ -115,8 +161,10 @@ class Grix {
     }
     fromTexture(texture: Img):Grix {
         this.texture = texture;
+
         texture.onLoaded(this.textureLoaded(this));
         texture.onLoaded(this.mkRect(this));
+
         return this;
     }
     addTexture(texture: Img):Grix {
@@ -126,9 +174,11 @@ class Grix {
     }
     animationFromSprite(sprite: Sprite):Grix {
         this.texture = sprite;
+
         sprite.onLoaded(this.spriteLoaded(this));
         sprite.onLoaded(this.mkRectSPA(this, sprite))
         sprite.onLoaded(this.setupAnimation(this, sprite))
+
         return this;
     }
     addSprite(sprite: Sprite):Grix {
@@ -145,19 +195,21 @@ class Grix {
     }
     private mkRect(ths: Grix): (texture: Img) => void {
         return function (texture: Img) {
-            ths.rect(texture.getWidth(), texture.getHeight())
+            ths.textureRect(texture.getWidth(), texture.getHeight())
         }
     }
     private mkRectSP(ths: Grix, sprite: Sprite): (texture: Img) => void {
         return function (texture: Img) {
             var img = sprite.arbImg();
-            ths.rect(img.getWidth(), img.getHeight())
+            ths.textureRect(img.getWidth(), img.getHeight())
+            ths.populate();
         }
     }
     private mkRectSPA(ths: Grix, sprite: Sprite): (texture: Img) => void {
         return function (texture: Img) {
             var img = sprite.arbAnim()[0];
-            ths.rect(img.getWidth(), img.getHeight())
+            ths.rect(img.getWidth(), img.getHeight());
+            ths.populate();
         }
     }
     private setupAnimation(ths: Grix, sprite: Sprite): (texture: Img) => void {
@@ -187,21 +239,30 @@ class Grix {
             else return Plena.getBasicShader(Plena.ShaderType.COLOR);
         } else return this.customeShader;
     }
+    //rotating and mirroring does not work together, I made something to have the displacement of mirroring to be corected, but I did not keep the rotation into account, so only angle==0 will work with mirroring, it does work with scaling
     render() {
         if (this.texture != null && !this.loadedTex) return;
 
-        var transform = Matrix4.identity();
         var centerX = ((this.width * this.sXT) / 2);
         var centerY = ((this.height * this.sYT) / 2);
 
-        if (this.angle != 0) transform = Matrix4.translate(transform, centerX, centerY)
-        if (this.xT != 0 || this.yT != 0) transform = Matrix4.translate(transform, this.xT + (this.mirrorX ? centerX * 2 : 0), this.yT + + (this.mirrorY ? centerY * 2 : 0));
-        if (this.angle != 0) {
-            transform = Matrix4.translate(transform, !this.relRotP ? this.prX - this.xT - centerX : this.prX * (centerX * 2), !this.relRotP ? this.prY - this.yT - centerY : this.prY * (centerY * 2))
-            transform = Matrix4.rotate(transform, this.angle);
-            transform = Matrix4.translate(transform, !this.relRotP ? - this.prX + this.xT : -centerX - this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT : - centerY - this.prY * (centerY * 2))
-        }
-        if (this.sXT != 1 || this.sYT != 1) transform = Matrix4.scale(transform, this.sXT * (this.mirrorX ? -1 : 1), this.sYT * (this.mirrorY ? -1 : 1));
+        var aC = Math.cos(this.angle)
+        var aS = Math.sin(this.angle)
+        var xTr = centerX + this.xT;
+        var yTr = centerY + this.yT;
+
+        var mX = (this.mirrorX ? -1 : 1);
+        var mY = (this.mirrorY ? -1 : 1);
+
+        var x2 = !this.relRotP ? - this.prX + this.xT : - centerX - this.prX * (centerX * 2);
+        var y2 = !this.relRotP ? -this.prY + this.yT : - centerY - this.prY * (centerY * 2);
+        var x3 = this.sXT * mX;
+        var y3 = this.sYT * mY;
+        var x1 = xTr + (this.mirrorX ? centerX * 2 : 0) + (!this.relRotP ? this.prX - xTr : this.prX * (centerX * 2)) + aC * x2 + -aS * y2;
+        var y1 = yTr + (this.mirrorY ? centerY * 2 : 0) + (!this.relRotP ? this.prY - yTr : this.prY * (centerY * 2)) + aS * x2 + aC * y2;
+         
+        var transform = [aC * x3, aS * x3, 0, 0, -aS * y3, aC * y3, 0, 0, 0, 0, 1, 0, x1, y1, 0, 1];
+
         this.childs.enqueue(this.grixc(transform, this.color, this.img, this.anim, this.animStep));
     }
     animationStep(step: number) {
@@ -259,7 +320,7 @@ class Grix {
     rotateDeg(angle: number) {
         this.rotate(MMath.toRad(angle));
     }
-    rotatToDeg(angle: number) {
+    rotateToDeg(angle: number) {
         this.rotateTo(MMath.toRad(angle));
     }
     clean() {
@@ -285,7 +346,7 @@ class Grix {
     }
     do_render() {
         this.start();
-        if (this.texture != null) this.texture.bind()  
+        if (this.texture != null) this.texture.bind()
         var size = this.childs.size();
         for (var i = 0; i < size; i++) {
             var child = this.childs.dequeue();
@@ -339,6 +400,25 @@ interface GrixC {
     anim: string;
     animStep: number;
     transform: Mat4;
+}
+
+class WritableGrix extends Grix {
+    writable: WritableTexture;
+
+    constructor(tex: WritableTexture, customShader?: Shader) {
+        super(customShader);
+        this.writable = tex;
+        this.fromTexture(tex.getImg())
+        this.populate();
+    }
+
+    startWrite() {
+        this.writable.startWrite();
+    }
+
+    endWrite() {
+        this.writable.stopWrite();
+    }
 }
 
 class Shader {
@@ -616,22 +696,27 @@ class Framebuffer {
     private frameBuffer;
     private frameTexture;
 
-    constructor(width: number, height: number) {
+    constructor(size:number, smooth?:boolean, repeat?:boolean){
         this.frameTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, smooth ? gl.LINEAR : gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, smooth ? gl.LINEAR_MIPMAP_NEAREST : gl.NEAREST_MIPMAP_NEAREST);
+        if (repeat) gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
         this.frameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-        this.frameBuffer.width = width;
-        this.frameBuffer.height = height;
+        this.frameBuffer.width = size;
+        this.frameBuffer.height = size;
 
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.frameTexture, 0);
 
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+
+    getTexture(): WebGLTexture {
+        return this.frameTexture;
     }
 
     startRenderTo() {
@@ -644,7 +729,7 @@ class Framebuffer {
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+        gl.viewport(0, 0, Plena.width, Plena.height);
     }
 
     bindTexture() {

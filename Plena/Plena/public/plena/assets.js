@@ -260,6 +260,35 @@ var Sprite = (function () {
     };
     return Sprite;
 })();
+var WritableTexture = (function () {
+    function WritableTexture(width, height, smooth, repeat) {
+        var size = Math.pow(2, Math.ceil(MMath.logN(2, height > width ? height : width)));
+        console.log(size);
+        this.frame = new Framebuffer(size, smooth, repeat);
+        this.img = new Img(this.frame.getTexture(), "");
+        this.img.imgLoaded(size, 0, 0, width, height, false);
+    }
+    WritableTexture.prototype.startWrite = function () {
+        Plena.saveProjection();
+        Plena.changeProjection(0, this.img.getWidth(), 0, this.img.getHeight());
+        this.frame.startRenderTo();
+    };
+    WritableTexture.prototype.stopWrite = function () {
+        Plena.forceRender();
+        this.frame.stopRenderTo();
+        Plena.restoreProjection();
+    };
+    WritableTexture.prototype.getTexture = function () {
+        return this.frame.getTexture();
+    };
+    WritableTexture.prototype.getImg = function () {
+        return this.img;
+    };
+    WritableTexture.prototype.bind = function () {
+        this.img.bind();
+    };
+    return WritableTexture;
+})();
 var AudioManager = (function () {
     function AudioManager() {
         this.audio = new TreeMap(STRING_COMPARE);

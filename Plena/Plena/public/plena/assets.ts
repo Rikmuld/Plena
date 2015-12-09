@@ -314,6 +314,44 @@ class Sprite {
     }
 }
 
+class WritableTexture {
+    img: Img;
+    frame: Framebuffer;
+
+    constructor(width: number, height: number, smooth?:boolean, repeat?:boolean) {
+        var size = Math.pow(2, Math.ceil(MMath.logN(2, height > width ? height : width)));
+        console.log(size)
+        this.frame = new Framebuffer(size, smooth, repeat);
+        this.img = new Img(this.frame.getTexture(), "");
+        this.img.imgLoaded(size, 0, 0, width, height, false);
+    }
+
+    startWrite() {
+        Plena.saveProjection();
+        Plena.changeProjection(0, this.img.getWidth(), 0, this.img.getHeight());
+        this.frame.startRenderTo();
+    }
+
+    stopWrite() {
+        Plena.forceRender();
+        this.frame.stopRenderTo();
+        Plena.restoreProjection();
+    }
+
+    getTexture(): WebGLTexture {
+        return this.frame.getTexture();
+    }
+
+    getImg():Img {
+        return this.img;
+    }
+
+    bind() {
+        this.img.bind();
+    }
+}
+
+
 class AudioManager {
     private audio: TreeMap<string, AudioObj> = new TreeMap<string, AudioObj>(STRING_COMPARE);
 

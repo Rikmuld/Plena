@@ -11,7 +11,7 @@ var t1;
     }
     t1.setup = setup;
     function update(delta) {
-        rotate += 0.05;
+        rotate += 0.0025 * delta;
     }
     t1.update = update;
     function render(delta) {
@@ -21,11 +21,13 @@ var t1;
         cat.setPivotRot(250, 250, false);
         cat.moveTo(250, 0);
         cat.rotate(rotate);
-        for (var i = 0; i < 500 * multiple; i++) {
+        var time = Date.now();
+        for (var i = 0; i < 5000 * multiple; i++) {
             cat.render();
             cat.rotate((Math.PI * 2) / count);
-            cat.move(0, 250 / 500);
+            cat.move(0, 250 / 5000);
         }
+        console.log(Date.now() - time);
     }
     t1.render = render;
     function increseCount() {

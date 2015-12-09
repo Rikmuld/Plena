@@ -1,11 +1,18 @@
 //mor draw modes (not fill shape but only a border, or a shape witha border, different colors, gradients etc..)
 //fonst
 //maybe key over or click events
+//enable compound for all shapes
 //add lines with width
 //add points
 //add curves
 //texture mapping for shapes
 //sef made shape with moveto (also texture mapping)
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    __.prototype = b.prototype;
+    d.prototype = new __();
+};
 var Grix = (function () {
     function Grix(customShader) {
         this.mode = gl.TRIANGLES;
@@ -25,7 +32,12 @@ var Grix = (function () {
         this.relRotP = true;
         this.mirrorX = false;
         this.mirrorY = false;
+        this.inCount = 0;
         this.drawer = new Render();
+        this.minX = Math.min();
+        this.minY = Math.min();
+        this.maxX = Math.max();
+        this.maxY = Math.max();
         if (customShader) {
             this.customeShader = customShader;
             this.matrix = this.customeShader.getMatHandler();
@@ -34,6 +46,13 @@ var Grix = (function () {
         }
     }
     Grix.prototype.populate = function () {
+        if (this.verts != null) {
+            this.drawer.addVertexes(this.getShader(), this.verts.toArray());
+            this.drawer.addIndieces(this.indiec.toArray());
+            this.height = Math.abs(this.maxY - this.minY);
+            this.width = Math.abs(this.maxX - this.minX);
+            console.log(this.width, this.height);
+        }
         Plena.manager().addGrix(this.getShader(), this);
         this.isFinal = true;
         this.clean();
@@ -45,7 +64,38 @@ var Grix = (function () {
     Grix.prototype.end = function () {
         this.drawer.end();
     };
-    Grix.prototype.rect = function (width, height) {
+    Grix.prototype.addVerts = function () {
+        var verts = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            verts[_i - 0] = arguments[_i];
+        }
+        if (this.verts == null)
+            this.verts = new Bag();
+        this.verts.insertArray(verts);
+    };
+    Grix.prototype.addIndiec = function () {
+        var indiec = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            indiec[_i - 0] = arguments[_i];
+        }
+        if (this.indiec == null)
+            this.indiec = new Bag();
+        this.indiec.insertArray(indiec);
+    };
+    Grix.prototype.rect = function (width, height, x, y) {
+        if (x === void 0) { x = 0; }
+        if (y === void 0) { y = 0; }
+        this.addVerts(x, y, x + width, y, x + width, y + height, x, y + height);
+        this.addIndiec(this.inCount + 0, this.inCount + 1, this.inCount + 3, this.inCount + 1, this.inCount + 2, this.inCount + 3);
+        this.minX = Math.min(x, this.minX);
+        this.maxX = Math.max(width + x, this.maxX);
+        this.minY = Math.min(y, this.minY);
+        this.maxY = Math.max(height + y, this.maxY);
+        this.mode = gl.TRIANGLES;
+        this.inCount += 4;
+        return this;
+    };
+    Grix.prototype.textureRect = function (width, height) {
         this.drawer.addVertexes(this.getShader(), [0, 0, width, 0, width, height, 0, height]);
         this.drawer.addIndieces([0, 1, 3, 1, 2, 3]);
         this.width = width;
@@ -56,10 +106,13 @@ var Grix = (function () {
     Grix.prototype.line = function (x, y, x2, y2) {
         if (x2 === void 0) { x2 = 0; }
         if (y2 === void 0) { y2 = 0; }
-        this.width = Math.abs(x - x2);
-        this.height = Math.abs(y - y2);
-        this.drawer.addVertexes(this.getShader(), [0, 0, this.width, this.height]);
-        this.drawer.addIndieces([0, 1]);
+        this.addVerts(x2, y2, x + x2, y + y2);
+        this.addIndiec(this.inCount + 0, this.inCount + 1);
+        this.inCount += 2;
+        this.minX = Math.min(this.minX, Math.min(x + x2, x2));
+        this.maxX = Math.max(this.maxX, Math.max(x + x2, x2));
+        this.minY = Math.min(this.minY, Math.min(y + y2, y2));
+        this.maxY = Math.max(this.maxY, Math.max(y + y2, y2));
         this.mode = gl.LINES;
         return this;
     };
@@ -70,6 +123,7 @@ var Grix = (function () {
     Grix.prototype.polygon = function (radius, corners) {
         return this.circle(radius, corners);
     };
+    //make compoundable
     Grix.prototype.ellipse = function (radiusX, radiusY, parts) {
         if (parts === void 0) { parts = 30; }
         var coords = [radiusX, radiusY];
@@ -87,17 +141,17 @@ var Grix = (function () {
         this.mode = gl.TRIANGLE_FAN;
         return this;
     };
-    Grix.prototype.colorV3 = function (color) {
+    Grix.prototype.setColorV3 = function (color) {
         color.push(1);
         return this.setColor(color);
     };
-    Grix.prototype.colorV4 = function (color) {
+    Grix.prototype.setColorV4 = function (color) {
         return this.setColor(color);
     };
-    Grix.prototype.colorRGB = function (r, g, b) {
+    Grix.prototype.setColorRGB = function (r, g, b) {
         return this.setColor([r / 255, g / 255, b / 255, 1]);
     };
-    Grix.prototype.colorRBGA = function (r, g, b, a) {
+    Grix.prototype.setColorRBGA = function (r, g, b, a) {
         return this.setColor([r / 255, g / 255, b / 255, a / 255]);
     };
     Grix.prototype.setColor = function (color) {
@@ -140,19 +194,21 @@ var Grix = (function () {
     };
     Grix.prototype.mkRect = function (ths) {
         return function (texture) {
-            ths.rect(texture.getWidth(), texture.getHeight());
+            ths.textureRect(texture.getWidth(), texture.getHeight());
         };
     };
     Grix.prototype.mkRectSP = function (ths, sprite) {
         return function (texture) {
             var img = sprite.arbImg();
-            ths.rect(img.getWidth(), img.getHeight());
+            ths.textureRect(img.getWidth(), img.getHeight());
+            ths.populate();
         };
     };
     Grix.prototype.mkRectSPA = function (ths, sprite) {
         return function (texture) {
             var img = sprite.arbAnim()[0];
             ths.rect(img.getWidth(), img.getHeight());
+            ths.populate();
         };
     };
     Grix.prototype.setupAnimation = function (ths, sprite) {
@@ -186,23 +242,25 @@ var Grix = (function () {
         else
             return this.customeShader;
     };
+    //rotating and mirroring does not work together, I made something to have the displacement of mirroring to be corected, but I did not keep the rotation into account, so only angle==0 will work with mirroring, it does work with scaling
     Grix.prototype.render = function () {
         if (this.texture != null && !this.loadedTex)
             return;
-        var transform = Matrix4.identity();
         var centerX = ((this.width * this.sXT) / 2);
         var centerY = ((this.height * this.sYT) / 2);
-        if (this.angle != 0)
-            transform = Matrix4.translate(transform, centerX, centerY);
-        if (this.xT != 0 || this.yT != 0)
-            transform = Matrix4.translate(transform, this.xT + (this.mirrorX ? centerX * 2 : 0), this.yT + +(this.mirrorY ? centerY * 2 : 0));
-        if (this.angle != 0) {
-            transform = Matrix4.translate(transform, !this.relRotP ? this.prX - this.xT - centerX : this.prX * (centerX * 2), !this.relRotP ? this.prY - this.yT - centerY : this.prY * (centerY * 2));
-            transform = Matrix4.rotate(transform, this.angle);
-            transform = Matrix4.translate(transform, !this.relRotP ? -this.prX + this.xT : -centerX - this.prX * (centerX * 2), !this.relRotP ? -this.prY + this.yT : -centerY - this.prY * (centerY * 2));
-        }
-        if (this.sXT != 1 || this.sYT != 1)
-            transform = Matrix4.scale(transform, this.sXT * (this.mirrorX ? -1 : 1), this.sYT * (this.mirrorY ? -1 : 1));
+        var aC = Math.cos(this.angle);
+        var aS = Math.sin(this.angle);
+        var xTr = centerX + this.xT;
+        var yTr = centerY + this.yT;
+        var mX = (this.mirrorX ? -1 : 1);
+        var mY = (this.mirrorY ? -1 : 1);
+        var x2 = !this.relRotP ? -this.prX + this.xT : -centerX - this.prX * (centerX * 2);
+        var y2 = !this.relRotP ? -this.prY + this.yT : -centerY - this.prY * (centerY * 2);
+        var x3 = this.sXT * mX;
+        var y3 = this.sYT * mY;
+        var x1 = xTr + (this.mirrorX ? centerX * 2 : 0) + (!this.relRotP ? this.prX - xTr : this.prX * (centerX * 2)) + aC * x2 + -aS * y2;
+        var y1 = yTr + (this.mirrorY ? centerY * 2 : 0) + (!this.relRotP ? this.prY - yTr : this.prY * (centerY * 2)) + aS * x2 + aC * y2;
+        var transform = [aC * x3, aS * x3, 0, 0, -aS * y3, aC * y3, 0, 0, 0, 0, 1, 0, x1, y1, 0, 1];
         this.childs.enqueue(this.grixc(transform, this.color, this.img, this.anim, this.animStep));
     };
     Grix.prototype.animationStep = function (step) {
@@ -263,7 +321,7 @@ var Grix = (function () {
     Grix.prototype.rotateDeg = function (angle) {
         this.rotate(MMath.toRad(angle));
     };
-    Grix.prototype.rotatToDeg = function (angle) {
+    Grix.prototype.rotateToDeg = function (angle) {
         this.rotateTo(MMath.toRad(angle));
     };
     Grix.prototype.clean = function () {
@@ -342,6 +400,22 @@ var Grix = (function () {
     };
     return Grix;
 })();
+var WritableGrix = (function (_super) {
+    __extends(WritableGrix, _super);
+    function WritableGrix(tex, customShader) {
+        _super.call(this, customShader);
+        this.writable = tex;
+        this.fromTexture(tex.getImg());
+        this.populate();
+    }
+    WritableGrix.prototype.startWrite = function () {
+        this.writable.startWrite();
+    };
+    WritableGrix.prototype.endWrite = function () {
+        this.writable.stopWrite();
+    };
+    return WritableGrix;
+})(Grix);
 var Shader = (function () {
     function Shader(id, shaderVars, p2, p3) {
         this.programId = 0;
@@ -564,20 +638,25 @@ var Render = (function () {
     return Render;
 })();
 var Framebuffer = (function () {
-    function Framebuffer(width, height) {
+    function Framebuffer(size, smooth, repeat) {
         this.frameTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, smooth ? gl.LINEAR : gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, smooth ? gl.LINEAR_MIPMAP_NEAREST : gl.NEAREST_MIPMAP_NEAREST);
+        if (repeat)
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
         this.frameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-        this.frameBuffer.width = width;
-        this.frameBuffer.height = height;
+        this.frameBuffer.width = size;
+        this.frameBuffer.height = size;
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.frameTexture, 0);
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
+    Framebuffer.prototype.getTexture = function () {
+        return this.frameTexture;
+    };
     Framebuffer.prototype.startRenderTo = function () {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -587,7 +666,7 @@ var Framebuffer = (function () {
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, window.innerWidth, window.innerHeight);
+        gl.viewport(0, 0, Plena.width, Plena.height);
     };
     Framebuffer.prototype.bindTexture = function () {
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);

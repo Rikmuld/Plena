@@ -11,10 +11,10 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 app.get('/(*)', render('index'))
 
-var desc = ["Spiraling Cats", "Marble Floor", "Ninja Cat", "Animated Cat"]
+var desc = ["Spiraling Cats", "Marble Floor", "Ninja Cat", "Animated Cat", "Colors", "Pong", "Shapes"]
 function render(file: string):(req, res) => void {
     return function (req, res) {
-        res.render(file, {num:req.url.split("/")[1], maxNum:4, desc:desc})
+        res.render(file, {num:req.url.split("/")[1], maxNum:7, desc:desc})
     }
 }
 
