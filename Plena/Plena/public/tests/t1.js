@@ -22,10 +22,10 @@ var t1;
         cat.moveTo(250, 0);
         cat.rotate(rotate);
         var time = Date.now();
-        for (var i = 0; i < 5000 * multiple; i++) {
+        for (var i = 0; i < 1000 * multiple; i++) {
             cat.render();
             cat.rotate((Math.PI * 2) / count);
-            cat.move(0, 250 / 5000);
+            cat.move(0, 250 / 1000);
         }
         console.log(Date.now() - time);
     }
