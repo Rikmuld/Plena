@@ -1,4 +1,3 @@
-//make no safe default and save in sepearte thing if wanted option
 var TextureManager = (function () {
     function TextureManager() {
         this.textures = new TreeMap(STRING_COMPARE);
@@ -34,46 +33,6 @@ var TextureManager = (function () {
     TextureManager.prototype.hasImg = function (key) {
         return this.textures.contains(key);
     };
-    TextureManager.prototype.loadWebFont = function (id, text, font, smooth, background) {
-        var _this = this;
-        if (smooth === void 0) { smooth = false; }
-        if (this.hasImg(id))
-            console.log("Img key already exsists!");
-        else {
-            var texture = gl.createTexture();
-            var retImg = new Img(texture, id);
-            var c = document.createElement('canvas');
-            var ctx = c.getContext('2d');
-            ctx.font = font.fontsize + "px " + font.family;
-            var width = ctx.measureText(text).width;
-            var height = font.fontsize * 2;
-            c.width = Math.pow(2, Math.ceil(MMath.logN(2, width)));
-            c.height = Math.pow(2, Math.ceil(MMath.logN(2, height)));
-            var align = font.align == "center" ? (c.width / 2) : font.align == "left" ? 0 : c.width;
-            ctx.textAlign = font.align;
-            ctx.textBaseline = font.baseline;
-            ctx.font = font.fontsize + "px " + font.family;
-            if (font.fill) {
-                ctx.fillStyle = font.fill;
-                ctx.fillText(text, align, c.height / 2);
-            }
-            if (font.stroke) {
-                ctx.strokeStyle = font.stroke;
-                ctx.strokeText(text, align, c.height / 2);
-            }
-            if (background)
-                ctx.fill(background);
-            var nwSrc = c.toDataURL();
-            var tex = new Image();
-            retImg.imgLoaded(c.width, c.height, 0, 0, width, height, false);
-            tex.onload = function () {
-                _this.handleTextureLoaded(tex, texture, false, smooth);
-            };
-            tex.src = nwSrc;
-            this.textures.put(id, retImg);
-            return retImg;
-        }
-    };
     TextureManager.prototype.initTexture = function (id, src, repeat, smooth) {
         var _this = this;
         var texture = gl.createTexture();
@@ -81,18 +40,19 @@ var TextureManager = (function () {
         var img = new Image();
         img.onload = function () {
             if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
-                retImg.imgLoaded(img.width, img.height, 0, 0, img.width, img.height, false);
+                retImg.imgLoaded(size, 0, 0, img.width, img.height, false);
                 _this.handleTextureLoaded(img, texture, repeat, smooth);
             }
             else {
                 var c = document.createElement('canvas');
-                c.width = Math.pow(2, Math.ceil(MMath.logN(2, img.width)));
-                c.height = Math.pow(2, Math.ceil(MMath.logN(2, img.height)));
+                var size = Math.pow(2, Math.ceil(MMath.logN(2, img.height > img.width ? img.height : img.width)));
+                c.width = size;
+                c.height = size;
                 var ctx = c.getContext('2d');
                 ctx.drawImage(img, 0, 0);
                 var nwSrc = c.toDataURL();
                 var tex = new Image();
-                retImg.imgLoaded(c.width, c.height, 0, 0, img.width, img.height, false);
+                retImg.imgLoaded(size, 0, 0, img.width, img.height, false);
                 tex.onload = function () {
                     _this.handleTextureLoaded(tex, texture, repeat, smooth);
                 };
@@ -115,11 +75,11 @@ var TextureManager = (function () {
     return TextureManager;
 })();
 var TexCoord = (function () {
-    function TexCoord(xMin, yMin, width, height, maxX, maxY, safe) {
-        this.minX = (xMin + (safe ? 0.5 : 0)) / maxX;
-        this.minY = (yMin + (safe ? 0.5 : 0)) / maxY;
-        this.maxX = xMin / maxX + ((width - (safe ? 0.5 : 0)) / maxX);
-        this.maxY = yMin / maxY + ((height - (safe ? 0.5 : 0)) / maxY);
+    function TexCoord(xMin, yMin, width, height, max, safe) {
+        this.minX = (xMin + (safe ? 0.5 : 0)) / max;
+        this.minY = (yMin + (safe ? 0.5 : 0)) / max;
+        this.maxX = xMin / max + ((width - (safe ? 0.5 : 0)) / max);
+        this.maxY = yMin / max + ((height - (safe ? 0.5 : 0)) / max);
         this.width = width;
         this.height = height;
     }
@@ -153,12 +113,11 @@ var Img = (function () {
     Img.prototype.getId = function () {
         return this.id;
     };
-    Img.prototype.imgLoaded = function (maxX, maxY, x, y, width, height, safe) {
-        this.sizeX = maxX;
-        this.sizeY = maxY;
+    Img.prototype.imgLoaded = function (max, x, y, width, height, safe) {
+        this.size = max;
         this.width = width;
         this.height = height;
-        this.coord = new TexCoord(x, y, width, height, maxX, maxY, safe);
+        this.coord = new TexCoord(x, y, width, height, max, safe);
         this.isLoaded = true;
         var size = this.callbackLoaded.size();
         for (var i = 0; i < size; i++) {
@@ -178,11 +137,8 @@ var Img = (function () {
     Img.prototype.bind = function () {
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
     };
-    Img.prototype.maxX = function () {
-        return this.sizeX;
-    };
-    Img.prototype.maxY = function () {
-        return this.sizeY;
+    Img.prototype.max = function () {
+        return this.size;
     };
     Img.prototype.getWidth = function () {
         return this.width;
@@ -263,7 +219,7 @@ var Sprite = (function () {
                 var row = vertical ? Math.floor(i / rowCount) : i % rowCount;
                 var subImg = new Img(img.getGLTexture(), key);
                 console.log(ths.safe);
-                subImg.imgLoaded(img.maxX(), img.maxY(), x + row * width, y + colom * height, width, height, ths.safe);
+                subImg.imgLoaded(img.max(), x + row * width, y + colom * height, width, height, ths.safe);
                 if (!isAnim)
                     ths.subImages.put(key, subImg);
                 else
@@ -280,7 +236,7 @@ var Sprite = (function () {
         return function (img) {
             console.log(ths.safe);
             var subImg = new Img(img.getGLTexture(), key);
-            subImg.imgLoaded(img.maxY(), img.maxX(), x, y, width, height, ths.safe);
+            subImg.imgLoaded(img.max(), x, y, width, height, ths.safe);
             ths.subImages.put(key, subImg);
         };
     };
@@ -306,11 +262,11 @@ var Sprite = (function () {
 })();
 var WritableTexture = (function () {
     function WritableTexture(width, height, smooth, repeat) {
-        var sizeX = Math.pow(2, Math.ceil(MMath.logN(2, width)));
-        var sizeY = Math.pow(2, Math.ceil(MMath.logN(2, height)));
-        this.frame = new Framebuffer(sizeX, sizeY, smooth, repeat);
+        var size = Math.pow(2, Math.ceil(MMath.logN(2, height > width ? height : width)));
+        console.log(size);
+        this.frame = new Framebuffer(size, smooth, repeat);
         this.img = new Img(this.frame.getTexture(), "");
-        this.img.imgLoaded(sizeX, sizeY, 0, 0, width, height, false);
+        this.img.imgLoaded(size, 0, 0, width, height, false);
     }
     WritableTexture.prototype.startWrite = function () {
         Plena.saveProjection();
@@ -332,57 +288,6 @@ var WritableTexture = (function () {
         this.img.bind();
     };
     return WritableTexture;
-})();
-var Font = (function () {
-    function Font(size, family) {
-        this.baseline = "middle";
-        this.align = "left";
-        this.fontsize = size;
-        this.family = family;
-    }
-    Font.prototype.fillText = function (color) {
-        this.fill = color;
-        return this;
-    };
-    Font.prototype.strokeText = function (color) {
-        this.stroke = color;
-        return this;
-    };
-    Font.prototype.setBaseLine = function (pos) {
-        this.baseline = pos;
-        return this;
-    };
-    Font.prototype.setAlign = function (align) {
-        this.align = align;
-        return this;
-    };
-    Font.ARIAL = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
-    Font.ARIAL_NARROW = "'Arial Black', 'Arial Bold', Gadget, sans-serif";
-    Font.ARIAL_BOLD = "'Arial Narrow', Arial, sans-serif";
-    Font.ARIAL_ROUNDED = "'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif";
-    Font.CALIBRI = "Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif";
-    Font.CANDARA = "Candara, Calibri, Segoe, 'Segoe UI', Optima, Arial, sans-serif";
-    Font.CENTURY_GOTHIC = "'Century Gothic', CenturyGothic, AppleGothic, sans-serif";
-    Font.GILL_SANS = "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif";
-    Font.HELVETICA = "'Helvetica Neue', Helvetica, Arial, sans-serif";
-    Font.TAHOMA = "Tahoma, Verdana, Segoe, sans-serif";
-    Font.TREBUCHET_MS = "'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif";
-    Font.VERDANA = "Verdana, Geneva, sans-serif";
-    Font.BOOK_ANTIQUA = "'Book Antiqua', Palatino, 'Palatino Linotype', 'Palatino LT STD', Georgia, serif";
-    Font.CAMBRIA = "Cambria, Georgia, serif";
-    Font.GARAMOND = "Garamond, Baskerville, 'Baskerville Old Face', 'Hoefler Text', 'Times New Roman', serif";
-    Font.GEORGRIA = "Georgia, Times, 'Times New Roman', serif";
-    Font.LUCIDA_BRIGHT = "'Lucida Bright', Georgia, serif";
-    Font.PALATINO = "Palatino, 'Palatino Linotype', 'Palatino LT STD', 'Book Antiqua', Georgia, serif";
-    Font.BASKERVILLE = "Baskerville, 'Baskerville Old Face', 'Hoefler Text', Garamond, 'Times New Roman', serif";
-    Font.TIMES_NEW_ROMAN = "TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif";
-    Font.CONSOLAS = "Consolas, monaco, monospace";
-    Font.COURIER_NEW = "'Courier New', Courier, 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace";
-    Font.MONACO = "monaco, Consolas, 'Lucida Console', monospace";
-    Font.COPPERPLATE = "Copperplate, 'Copperplate Gothic Light', fantasy";
-    Font.PAPYRUS = "Papyrus, fantasy";
-    Font.BRUSH_SCRIPT_MT = "'Brush Script MT', cursive";
-    return Font;
 })();
 var AudioManager = (function () {
     function AudioManager() {

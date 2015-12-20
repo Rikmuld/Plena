@@ -1,9 +1,16 @@
-﻿var BALL_RADIUS = 20;
+﻿declare var io
+var socket = io();
+
+var BALL_RADIUS = 20;
 var BAR_RADIUS = 60;
 var BALL_SPEED_INITAL = 10;
 var BALL_SPEED_INCRESE = .1;
 var BAR_SPEED_INITIAL = 20;
 var WIN_SCORE = 5;
+
+socket.on("batPos", function (bat: number, x: number) {
+    PongCode.setBatPos(bat, x);
+})
 
 module PongCode {
     var score = 0;
@@ -21,6 +28,11 @@ module PongCode {
     var vb = BAR_SPEED_INITIAL;
 
     var isPlaying = false;
+
+    export function setBatPos(bat: number, pos: number) {
+        if (bat == 1) x1 = pos;
+        else x2 = pos;
+    }
 
     export function setup() {
         bat = new Grix().setColorRGB(100, 160, 100).rect(20, BAR_RADIUS * 2).populate();
@@ -40,11 +52,6 @@ module PongCode {
             vb += BALL_SPEED_INCRESE / 120;
 
             if (tt > 0) tt--;
-
-            if (Keyboard.isKeyDown(Keyboard.KEY_W)) x1 -= vb;
-            if (Keyboard.isKeyDown(Keyboard.KEY_S)) x1 += vb;
-            if (Keyboard.isKeyDown(Keyboard.KEY_UP)) x2 -= vb;
-            if (Keyboard.isKeyDown(Keyboard.KEY_DOWN)) x2 += vb;
 
             xB += v * Math.cos(direction);
             yB += v * Math.sin(direction);

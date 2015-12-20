@@ -153,10 +153,6 @@ var Plena;
         changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3]);
     }
     Plena.restoreProjection = restoreProjection;
-    function getSprite(key) {
-        return textureManager.getSprite(key);
-    }
-    Plena.getSprite = getSprite;
     function getImg(key) {
         return textureManager.getTexture(key);
     }
@@ -301,24 +297,4 @@ var GLF;
     }
     GLF.blend = blend;
 })(GLF || (GLF = {}));
-var Color = (function () {
-    function Color() {
-    }
-    Color.toRGB = function (hex) {
-        var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-        hex = hex.replace(shorthandRegex, function (m, r, g, b) {
-            return r + r + g + g + b + b;
-        });
-        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
-    };
-    Color.componentToHex = function (c) {
-        var hex = c.toString(16);
-        return hex.length == 1 ? "0" + hex : hex;
-    };
-    Color.toHex = function (r, g, b) {
-        return "#" + Color.componentToHex(r) + Color.componentToHex(g) + Color.componentToHex(b);
-    };
-    return Color;
-})();
 //# sourceMappingURL=plena.js.map

@@ -1,12 +1,13 @@
-//mor draw modes (not fill shape but only a border, or a shape witha border, different colors, gradients etc..)
-//fonst
+//more draw modes (not fill shape but only a border, or a shape witha border, different colors, gradients etc..)
+//font
 //maybe key over or click events
-//enable compound for all shapes
-//add lines with width
-//add points
+//enable compound for all ellipses
 //add curves
 //texture mapping for shapes
-//sef made shape with moveto (also texture mapping)
+//self made shape with moveto (also texture mapping)
+//canvas driven graphix as alternative
+//fix render
+//test time of canvas driven render vs grix
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -638,18 +639,18 @@ var Render = (function () {
     return Render;
 })();
 var Framebuffer = (function () {
-    function Framebuffer(size, smooth, repeat) {
+    function Framebuffer(sizeX, sizeY, smooth, repeat) {
         this.frameTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, size, size, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, smooth ? gl.LINEAR : gl.NEAREST);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, smooth ? gl.LINEAR_MIPMAP_NEAREST : gl.NEAREST_MIPMAP_NEAREST);
         if (repeat)
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
         this.frameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-        this.frameBuffer.width = size;
-        this.frameBuffer.height = size;
+        this.frameBuffer.width = sizeX;
+        this.frameBuffer.height = sizeY;
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.frameTexture, 0);
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);

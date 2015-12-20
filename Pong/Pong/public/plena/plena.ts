@@ -1,14 +1,15 @@
-var gl;
+﻿var gl;
+
 //all textures loaded cheack and only then call render/update stuff (option)
 //fullscreen option
 //loader at start option
 //full screen filters, write entire screen to texture and apply
 //texture load filters
-var Plena;
-(function (Plena) {
-    var renderLp, updateLp;
+module Plena {
+    var renderLp, updateLp: (delta: number) => void;
     var canvas;
-    var lastTick;
+    var lastTick:number;
+
     var shadColFrag = "\
         precision highp float; \
         \
@@ -17,6 +18,7 @@ var Plena;
         void main(void){ \
             gl_FragColor = color; \
         } ";
+
     var shadColVertex = "\
         precision highp float; \
         \
@@ -29,6 +31,7 @@ var Plena;
         void main(void){ \
             gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); \
         }";
+
     var shadTexFrag = "\
         precision highp float; \
         \
@@ -39,6 +42,7 @@ var Plena;
         void main(void){ \
             gl_FragColor = texture2D(sampler, UV); \
         }";
+
     var shadTexVertex = "\
         precision highp float; \
         \
@@ -55,212 +59,221 @@ var Plena;
         void main(void){ \
             gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); \
             UV = (UVMatrix * vec4(vertexUV, 1, 1)).xy; \
-        } ";
-    Plena.width;
-    Plena.height;
-    var colorShader;
-    var textureShader;
-    var spriteManager;
-    var textureManager;
-    var audioManager;
-    var camera;
-    var projection;
-    var projectionSave;
-    function init(setupFunc, renderLoop, updateLoop, p1, p2, p3, p4, p5) {
-        var width, height, x, y;
-        var color;
+        } "; 
+
+    export var width: number;
+    export var height: number;
+
+    var colorShader: Shader;
+    var textureShader: Shader;
+
+    var spriteManager: Manager;
+
+    var textureManager: TextureManager;
+    var audioManager: AudioManager;
+
+    var camera: Camera;
+    var projection: Vec4;
+    var projectionSave: Vec4;
+
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: number[]);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: number[]);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: number[]);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number|number[], p2?: number, p3?: number|number[], p4?: number, p5?: number[]) {
+        var width, height, x, y: number;
+        var color: number[];
+
         if (typeof p3 == 'number') {
             width = p3;
             height = p4;
             x = p1;
             y = p2;
-            if (p5)
-                color = p5;
-            else
-                color = [1, 1, 1, 1];
-        }
-        else if (typeof p2 == 'number') {
+            if (p5) color = <number[]>p5;
+            else color = [1, 1, 1, 1]
+        } else if (typeof p2 == 'number') {
             width = p1;
             height = p2;
             x = window.innerWidth / 2 - width / 2;
             y = window.innerHeight / 2 - height / 2;
-            if (p3)
-                color = p3;
-            else
-                color = [1, 1, 1, 1];
-        }
-        else {
+            if (p3) color = <number[]>p3;
+            else color = [1, 1, 1, 1]
+        } else {
             width = window.innerWidth;
             height = window.innerHeight;
             x = 0;
             y = 0;
-            if (p1)
-                color = p1;
-            else
-                color = [1, 1, 1, 1];
+            if (p1) color = <number[]>p1;
+            else color = [1, 1, 1, 1]
         }
+
         textureManager = new TextureManager();
         audioManager = new AudioManager();
+
         canvas = document.createElement('canvas');
         canvas.setAttribute("width", "" + width);
         canvas.setAttribute("height", "" + height);
-        canvas.setAttribute("style", "position:fixed; top:" + y + "px; left:" + x + "px");
-        document.body.appendChild(canvas);
+        canvas.setAttribute("style", "position:fixed; top:" + y + "px; left:" + x + "px")
+        document.body.appendChild(canvas)
+
         Plena.width = width;
         Plena.height = height;
+
         gl = canvas.getContext("experimental-webgl");
-        GLF.viewPort(0, 0, width, height);
+
+        GLF.viewPort(0, 0, width, height)
         GLF.alphaBlend();
-        GLF.clearColor(color);
+        GLF.clearColor(color)
         GLF.clearBufferColor();
+
         Keyboard.listenForKeys();
         Mouse.listenForPosition();
         Mouse.listenForClick();
-        colorShader = createShader(ShaderType.COLOR);
-        textureShader = createShader(ShaderType.TEXTURE);
-        changeProjection(0, width, height, 0);
+
+        colorShader = createShader(ShaderType.COLOR)
+        textureShader = createShader(ShaderType.TEXTURE)
+
+        changeProjection(0, width, height, 0)
+
         spriteManager = createManager();
         spriteManager.addShader(colorShader);
         spriteManager.addShader(textureShader);
+
         renderLp = renderLoop;
         updateLp = updateLoop;
+
         lastTick = Date.now();
+
         setupFunc();
-        looper();
+        looper()
     }
-    Plena.init = init;
-    function loadSpriteFile(src, safe, repeat, smooth, id) {
-        if (!id)
-            id = src.split("/").pop().split('.')[0];
-        return textureManager.loadSprite(src, id, safe ? true : false, repeat, smooth);
+
+    export function loadSpriteFile(src: string, safe?:boolean, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
+        if (!id) id = src.split("/").pop().split('.')[0];
+        return textureManager.loadSprite(src, id, safe?true:false, repeat, smooth);
     }
-    Plena.loadSpriteFile = loadSpriteFile;
-    function loadImg(src, repeat, smooth, id) {
-        if (!id)
-            id = src.split("/").pop().split('.')[0];
+    export function loadImg(src: string, repeat?: boolean, smooth?: boolean, id?: string): Img {
+        if (!id) id = src.split("/").pop().split('.')[0];
         return textureManager.loadImg(src, id, repeat, smooth);
     }
-    Plena.loadImg = loadImg;
-    function mkWritableImg(width, height, smooth, repeat) {
+    export function mkWritableImg(width: number, height: number, smooth?:boolean, repeat?:boolean): WritableTexture {
         return new WritableTexture(width, height, smooth, repeat);
     }
-    Plena.mkWritableImg = mkWritableImg;
-    function saveProjection() {
+    export function saveProjection() {
         projectionSave = projection;
     }
-    Plena.saveProjection = saveProjection;
-    function restoreProjection() {
-        changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3]);
+    export function restoreProjection() {
+        changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3])
     }
-    Plena.restoreProjection = restoreProjection;
-    function getSprite(key) {
-        return textureManager.getSprite(key);
-    }
-    Plena.getSprite = getSprite;
-    function getImg(key) {
+    export function getImg(key: string): Img {
         return textureManager.getTexture(key);
     }
-    Plena.getImg = getImg;
-    function bindCameraTo(entity) {
-        if (camera == null)
-            camera = new Camera(entity);
-        else
-            camera.bindTo(entity);
+    export function bindCameraTo(entity: Entity) {
+        if (camera == null) camera = new Camera(entity);
+        else camera.bindTo(entity);
     }
-    Plena.bindCameraTo = bindCameraTo;
-    function changeCamera(camera) {
+    export function changeCamera(camera:Camera) {
         camera = camera;
     }
-    Plena.changeCamera = changeCamera;
-    function getCamera() {
+    export function getCamera(): Camera {
         return camera;
     }
-    Plena.getCamera = getCamera;
-    function changeProjection(left, right, bottom, top) {
-        var ortho;
+    export function changeProjection(left: number, bottom: number);
+    export function changeProjection(left: number, right: number, bottom: number, top: number);
+    export function changeProjection(left: number, right: number, bottom?: number, top?: number) {
+        var ortho: Mat4;
+
         if (typeof bottom == 'number') {
             ortho = Matrix4.ortho(left, right, bottom, top);
             projection = [left, right, bottom, top];
-        }
-        else {
+        } else {
             ortho = Matrix4.ortho(0, left, right, 0);
             projection = [0, left, right, 0];
         }
+        
         colorShader.bind();
         colorShader.getMatHandler().setProjectionMatrix(ortho);
         textureShader.bind();
         textureShader.getMatHandler().setProjectionMatrix(ortho);
     }
-    Plena.changeProjection = changeProjection;
+
     function looper() {
         GLF.clearBufferColor();
+
         var tick = Date.now();
         var delta = tick - lastTick;
         lastTick = tick;
-        if (camera != null)
-            camera.update();
+
+        if (camera != null) camera.update();
+
         renderLp(delta);
         updateLp(delta);
         spriteManager.render();
         requestAnimationFrame(looper);
     }
-    function forceRender() {
+
+    export function forceRender() {
         spriteManager.render();
     }
-    Plena.forceRender = forceRender;
-    function getBasicShader(typ) {
+
+    export function getBasicShader(typ: ShaderType): Shader {
         switch (typ) {
             case ShaderType.COLOR: return colorShader;
             case ShaderType.TEXTURE: return textureShader;
         }
     }
-    Plena.getBasicShader = getBasicShader;
-    (function (ShaderType) {
-        ShaderType[ShaderType["COLOR"] = 0] = "COLOR";
-        ShaderType[ShaderType["TEXTURE"] = 1] = "TEXTURE";
-    })(Plena.ShaderType || (Plena.ShaderType = {}));
-    var ShaderType = Plena.ShaderType;
-    function createShader(typ) {
-        var shad;
+
+    export enum ShaderType { COLOR, TEXTURE }
+
+    export function createShader(typ: ShaderType): Shader {
+        var shad: Shader;
         if (typ == ShaderType.COLOR) {
             shad = new Shader("plenaColorShader", { "projectionMatrix": Shader.PROJECTION_MATRIX, "viewMatrix": Shader.VIEW_MATRIX, "modelMatrix": Shader.MODEL_MATRIX, "color": Shader.COLOR }, shadColVertex, shadColFrag);
-        }
-        else {
+        } else {
             shad = new Shader("plenaTextureShader", { "projectionMatrix": Shader.PROJECTION_MATRIX, "viewMatrix": Shader.VIEW_MATRIX, "modelMatrix": Shader.MODEL_MATRIX, "UVMatrix": Shader.UV_MATRIX }, shadTexVertex, shadTexFrag);
             shad.getMatHandler().setUVMatrix(Matrix4.identity());
         }
+
         shad.getMatHandler().setModelMatrix(Matrix4.identity());
         shad.getMatHandler().setProjectionMatrix(Matrix4.identity());
         shad.getMatHandler().setViewMatrix(Matrix4.identity());
+
         return shad;
     }
-    Plena.createShader = createShader;
-    function manager() {
+
+    export function manager(): Manager {
         return spriteManager;
     }
-    Plena.manager = manager;
-    function createManager() {
+
+    export function createManager(): Manager {
         return new Manager();
     }
-    Plena.createManager = createManager;
-    var Manager = (function () {
-        function Manager() {
-            this.shaders = new TreeMap(STRING_COMPARE);
-            this.grixs = new DeepTreeMap(STRING_COMPARE);
-        }
-        Manager.prototype.hasShader = function (shader) {
+
+    class Manager {
+        private shaders = new TreeMap<string, Shader>(STRING_COMPARE);
+        private grixs = new DeepTreeMap<string, Grix>(STRING_COMPARE);
+
+        hasShader(shader: string): boolean {
             return this.shaders.contains(shader);
-        };
-        Manager.prototype.addShader = function (shader) {
+        }
+
+        addShader(shader: Shader) {
             this.shaders.put(shader.getId(), shader);
-        };
-        Manager.prototype.getShader = function (key) {
-            return this.shaders.apply(key);
-        };
-        Manager.prototype.addGrix = function (key, grix) {
-            this.grixs.put((typeof key == "string") ? key : key.getId(), grix);
-        };
-        Manager.prototype.render = function () {
+        }
+
+        getShader(key: string): Shader {
+            return this.shaders.apply(key)
+        }
+
+        addGrix(key: string, grix: Grix);
+        addGrix(key: Shader, grix: Grix);
+        addGrix(key: string|Shader, grix: Grix) {
+            this.grixs.put((typeof key == "string") ? (<string>key) : (<Shader>key).getId(), grix);
+        }
+
+        render() {
             var ittr = this.shaders.itterator();
             for (var i = 0; i < ittr.length; i++) {
                 var entry = ittr[i];
@@ -270,55 +283,31 @@ var Plena;
                     grixs[j].do_render();
                 }
             }
-        };
-        return Manager;
-    })();
-})(Plena || (Plena = {}));
-var GLF;
-(function (GLF) {
-    function clearBufferColor() {
+        }
+    }
+}
+
+module GLF {
+    export function clearBufferColor() {
         gl.clear(gl.COLOR_BUFFER_BIT);
     }
-    GLF.clearBufferColor = clearBufferColor;
-    function clearColor(color) {
+
+    export function clearColor(color: Vec4) {
         gl.clearColor(color[0], color[1], color[2], color[3]);
     }
-    GLF.clearColor = clearColor;
-    function viewPort(x, y, width, height) {
+
+    export function viewPort(x: number, y: number, width: number, height: number) {
         gl.viewport(x, y, width, height);
     }
-    GLF.viewPort = viewPort;
-    function alphaBlend() {
+
+    export function alphaBlend() {
         GLF.blend(true);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     }
-    GLF.alphaBlend = alphaBlend;
-    function blend(enable) {
-        if (enable)
-            gl.enable(gl.BLEND);
-        else
-            gl.disable(gl.BLEND);
+
+    export function blend(enable: boolean) {
+        if (enable) gl.enable(gl.BLEND);
+        else gl.disable(gl.BLEND);
     }
-    GLF.blend = blend;
-})(GLF || (GLF = {}));
-var Color = (function () {
-    function Color() {
-    }
-    Color.toRGB = function (hex) {
-        var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-        hex = hex.replace(shorthandRegex, function (m, r, g, b) {
-            return r + r + g + g + b + b;
-        });
-        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
-    };
-    Color.componentToHex = function (c) {
-        var hex = c.toString(16);
-        return hex.length == 1 ? "0" + hex : hex;
-    };
-    Color.toHex = function (r, g, b) {
-        return "#" + Color.componentToHex(r) + Color.componentToHex(g) + Color.componentToHex(b);
-    };
-    return Color;
-})();
-//# sourceMappingURL=plena.js.map
+}
+

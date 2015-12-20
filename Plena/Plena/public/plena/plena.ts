@@ -3,6 +3,8 @@
 //all textures loaded cheack and only then call render/update stuff (option)
 //fullscreen option
 //loader at start option
+//full screen filters, write entire screen to texture and apply
+//texture load filters
 module Plena {
     var renderLp, updateLp: (delta: number) => void;
     var canvas;
@@ -148,7 +150,6 @@ module Plena {
         looper()
     }
 
-    //img filters?
     export function loadSpriteFile(src: string, safe?:boolean, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
         if (!id) id = src.split("/").pop().split('.')[0];
         return textureManager.loadSprite(src, id, safe?true:false, repeat, smooth);
@@ -165,6 +166,9 @@ module Plena {
     }
     export function restoreProjection() {
         changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3])
+    }
+    export function getSprite(key: string): Sprite {
+        return textureManager.getSprite(key);
     }
     export function getImg(key: string): Img {
         return textureManager.getTexture(key);
@@ -310,3 +314,23 @@ module GLF {
     }
 }
 
+class Color {
+    static toRGB(hex:string):Vec3 {
+        var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+        hex = hex.replace(shorthandRegex, function (m, r, g, b) {
+            return r + r + g + g + b + b;
+        });
+
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
+    }
+
+    private static componentToHex(c:number):string {
+        var hex = c.toString(16);
+        return hex.length == 1 ? "0" + hex : hex;
+    }
+
+    private static toHex(r: number, g: number, b: number):string {
+        return "#" + Color.componentToHex(r) + Color.componentToHex(g) + Color.componentToHex(b);
+    }
+}

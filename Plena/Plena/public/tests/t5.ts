@@ -3,7 +3,9 @@
     var color: Vec3[] = [];
 
     var seed = 31984715;
-    var deviation = 20 / 256;
+    var devMax = 20;
+    var devMin = 2;
+    var pvot = [0, 1, 2, 3];
 
     export function setup() {
         MMath.setRandomSeed(seed);
@@ -31,22 +33,38 @@
         colors.setPivotMove(0, 0);
         colors.scaleToSize(320, 160);
         colors.moveTo(1520, 880)
+        
         for (var i = 0; i < 4; i++) {
-            colors.setColorV3(color[i])
+            colors.setColorV3(color[pvot[i]])
             colors.render();
-            if(i == 0)colors.move(0, 3*80)
-            if (i == 1) colors.move(6 * 80, 0)
-            if (i == 2) colors.move(0, -3*80)
+            if(i == 0)colors.move(6 * 80, 0)
+            if (i == 1) colors.move(- 6 * 80, 3 * 80)
+            if (i == 2) colors.move(6 * 80, 0)
         }
     }
 
+    function shuffle(array:number[]):number[] {
+        var currentIndex = array.length, temporaryValue, randomIndex;
+
+        while (0 !== currentIndex) {
+            randomIndex = Math.floor(MMath.random() * currentIndex);
+            currentIndex -= 1;
+            temporaryValue = array[currentIndex];
+            array[currentIndex] = array[randomIndex];
+            array[randomIndex] = temporaryValue;
+        }
+        return array;
+    }
+
     function randomColors() {
+        shuffle(pvot);
         color[0] = [0, 0, 0];
         for (var i = 0; i < 3; i++) color[0][i] = MMath.random();
         for (var j = 1; j < 4; j++) {
             color[j] = [];
-            for (var i = 0; i < 3; i++) color[j][i] = color[0][i] - deviation + MMath.random() * deviation*2;
+            for (var i = 0; i < 3; i++) color[j][i] = color[0][i] + ((1/256) * (MMath.random(devMin, devMax) * (MMath.random(0, 1)>.5? 1:-1)));
         }
+        console.log(pvot)
     }
 }
 

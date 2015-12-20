@@ -6,7 +6,7 @@
     private static mouseX: number;
     private static mouseY: number;
     private static buttons: boolean[] = new Array(10);
-    
+
     static listenForPosition() {
         document.onmousemove = Mouse.mouseMoved;
     }
