@@ -56,8 +56,6 @@ var Plena;
             gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); \
             UV = (UVMatrix * vec4(vertexUV, 1, 1)).xy; \
         } ";
-    Plena.width;
-    Plena.height;
     var colorShader;
     var textureShader;
     var spriteManager;
