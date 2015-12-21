@@ -27,10 +27,10 @@ class Grix {
     private defaultAnim: string;
     private anim: string;
     private animStep: number;
-    private xT: number = 0;
-    private yT: number = 0;
-    private sXT: number = 1;
-    private sYT: number = 1;
+    protected xT: number = 0;
+    protected yT: number = 0;
+    protected sXT: number = 1;
+    protected sYT: number = 1;
     private angle: number = 0;
     private pmX: number = 0;
     private pmY: number = 0;
@@ -67,8 +67,6 @@ class Grix {
 
             this.height = Math.abs(this.maxY - this.minY)
             this.width = Math.abs(this.maxX - this.minX)
-
-            console.log(this.width, this.height)
         }
         Plena.manager().addGrix(this.getShader(), this);
         this.isFinal = true;
@@ -125,7 +123,6 @@ class Grix {
     polygon(radius: number, corners: number): Grix {
         return this.circle(radius, corners);
     }
-    //make compoundable
     ellipse(radiusX: number, radiusY: number, parts: number = 30):Grix {
         var coords = [radiusX, radiusY];
         var indicies = [0];
@@ -365,6 +362,7 @@ class Grix {
         }
         this.end();
         this.clean();
+        this.getShader().getMatHandler().setUVMatrix(Matrix4.identity());
     }
     mirrorHorizontal(mirror: boolean) {
         this.mirrorX = mirror;
@@ -404,7 +402,7 @@ interface GrixC {
 }
 
 class WritableGrix extends Grix {
-    writable: WritableTexture;
+    private writable: WritableTexture;
 
     constructor(tex: WritableTexture, customShader?: Shader) {
         super(customShader);
@@ -419,6 +417,123 @@ class WritableGrix extends Grix {
 
     endWrite() {
         this.writable.stopWrite();
+    }
+}
+
+class TextGrix extends Grix {
+    private fontMap: FontMap;
+    private yOffset: number = 0;
+    private xOffset: number = 0;
+
+    //some ort of offset x for fomnts that are close to each other
+    constructor(fontMap: FontMap, customShader?: Shader) {
+        super(customShader);
+        this.addSprite(fontMap.getMap());
+        this.rect(1, 1);
+        this.populate();
+
+        this.fontMap = fontMap;
+    }
+
+    fontsize(px: number) {
+        var size = px / this.fontMap.getFont().getFontSize();
+        this.scaleTo(size, size);
+    }
+
+    offsetY(offset: number) {
+        this.yOffset = offset;
+    }
+
+    offsetX(offset: number) {
+        this.xOffset = offset;
+    }
+
+    clean() {
+        super.clean();
+        this.yOffset = 0;
+        this.xOffset = 0;
+    }
+
+    text(text: string, maxWidth: number = -1) {
+        var x = this.xT;
+        var y = this.yT;
+
+        if (maxWidth != -1) {
+            var textArr = text.split(" ");
+            var width = 0;
+            
+            for (var i = 0; i < textArr.length; i++) {
+                var tx = textArr[i];
+
+                if (width > 0 && width + this.length(tx) > maxWidth) {
+                    width = 0;
+                    this.moveXTo(x)
+                    this.move(0, (this.fontMap.getDim("a")[1] + this.yOffset) * this.sYT)
+                    width += this.do_text(tx + " ");
+                } else {
+                    width += this.do_text(tx + " ");
+                }               
+            }
+        } else {
+            this.do_text(text);
+        }
+    }
+
+    private length(text: string): number {
+        var length = 0;
+        for (var i = 0; i < text.length; i++) {
+            var char = text.charAt(i);
+            length += this.fontMap.getDim(char)[0] * this.sXT + this.xOffset;
+        }
+        return length;
+    }
+
+    private textSplit(text: string, max: number, ctx: CanvasRenderingContext2D): string[] {
+        var retText: string[] = [];
+
+        var textArr = text.split(" ");
+        var flag = "";
+
+        for (var i = 0; i < textArr.length; i++) {
+            if (flag.length == 0) flag = textArr[i];
+            else {
+                var subFlag = flag + " " + textArr[i];
+                if (ctx.measureText(subFlag).width > max) {
+                    retText.push(flag);
+                    flag = textArr[i];
+                } else flag = subFlag;
+            }
+        }
+        if (flag.length > 0) retText.push(flag);
+
+        return retText;
+    }
+
+    private do_text(text: string): number {
+        var dX = this.sXT;
+        var dY = this.sYT;
+
+        var widthTotal = 0;
+        for (var i = 0; i < text.length; i++) {
+            var a = text.charAt(i);
+            if (a == " ") {
+                this.move(this.fontMap.spacing() * dX + this.xOffset, 0);
+                widthTotal += this.fontMap.spacing() * dX + this.xOffset;
+            } else {
+                var dim = this.fontMap.getDim(a);
+                var height = dim[1];
+                var width = dim[0];
+
+                this.setActiveImg(a);
+                this.scaleToSize(width * dX, height * dY)
+                this.render();
+                this.move(width * dX + this.xOffset, 0);
+                widthTotal += width * dX + this.xOffset;
+            }
+        }
+
+        this.scaleTo(dX, dY);
+        return widthTotal;
     }
 }
 

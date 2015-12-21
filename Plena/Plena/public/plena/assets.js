@@ -1,83 +1,108 @@
 //make no safe default and save in sepearte thing if wanted option
 var TextureManager = (function () {
     function TextureManager() {
-        this.textures = new TreeMap(STRING_COMPARE);
-        this.sprites = new TreeMap(STRING_COMPARE);
     }
-    ;
-    ;
-    TextureManager.prototype.getSprite = function (key) {
-        return this.sprites.apply(key);
+    TextureManager.prototype.loadSprite = function (src, safe, repeat, smooth) {
+        return new Sprite(this.initTexture(src, repeat ? true : false, smooth ? true : false), safe);
     };
-    TextureManager.prototype.getTexture = function (key) {
-        return this.textures.apply(key);
+    TextureManager.prototype.loadImg = function (src, repeat, smooth) {
+        return this.initTexture(src, repeat ? true : false, smooth ? true : false);
     };
-    TextureManager.prototype.loadSprite = function (src, key, safe, repeat, smooth) {
-        if (!this.hasImg(key)) {
-            return new Sprite(this.initTexture(key, src, repeat ? true : false, smooth ? true : false), safe);
-        }
-        else
-            console.log("Sprite key already exsists!");
-    };
-    TextureManager.prototype.loadImg = function (src, key, repeat, smooth) {
-        if (!this.hasImg(key)) {
-            var img = this.initTexture(key, src, repeat ? true : false, smooth ? true : false);
-            this.textures.put(key, img);
-            return img;
-        }
-        else
-            console.log("Img key already exsists!");
-    };
-    TextureManager.prototype.hasSprite = function (key) {
-        return this.sprites.contains(key);
-    };
-    TextureManager.prototype.hasImg = function (key) {
-        return this.textures.contains(key);
-    };
-    TextureManager.prototype.loadWebFont = function (id, text, font, smooth, background) {
+    TextureManager.prototype.loadWebFont = function (text, font, background, maxWidth, offset, smooth) {
         var _this = this;
+        if (maxWidth === void 0) { maxWidth = -1; }
+        if (offset === void 0) { offset = 0; }
         if (smooth === void 0) { smooth = false; }
-        if (this.hasImg(id))
-            console.log("Img key already exsists!");
-        else {
-            var texture = gl.createTexture();
-            var retImg = new Img(texture, id);
-            var c = document.createElement('canvas');
-            var ctx = c.getContext('2d');
-            ctx.font = font.fontsize + "px " + font.family;
-            var width = ctx.measureText(text).width;
-            var height = font.fontsize * 2;
-            c.width = Math.pow(2, Math.ceil(MMath.logN(2, width)));
-            c.height = Math.pow(2, Math.ceil(MMath.logN(2, height)));
-            var align = font.align == "center" ? (c.width / 2) : font.align == "left" ? 0 : c.width;
-            ctx.textAlign = font.align;
-            ctx.textBaseline = font.baseline;
-            ctx.font = font.fontsize + "px " + font.family;
-            if (font.fill) {
-                ctx.fillStyle = font.fill;
-                ctx.fillText(text, align, c.height / 2);
-            }
-            if (font.stroke) {
-                ctx.strokeStyle = font.stroke;
-                ctx.strokeText(text, align, c.height / 2);
-            }
-            if (background)
-                ctx.fill(background);
-            var nwSrc = c.toDataURL();
-            var tex = new Image();
-            retImg.imgLoaded(c.width, c.height, 0, 0, width, height, false);
-            tex.onload = function () {
-                _this.handleTextureLoaded(tex, texture, false, smooth);
-            };
-            tex.src = nwSrc;
-            this.textures.put(id, retImg);
-            return retImg;
+        var texture = gl.createTexture();
+        var retImg = new Img(texture);
+        var c = document.createElement('canvas');
+        var ctx = c.getContext('2d');
+        font.apply(ctx);
+        var splitText;
+        if (maxWidth >= 0) {
+            var splitText = this.textSplit(text, maxWidth, ctx);
+            maxWidth = Math.max(maxWidth, this.getMaxLength(ctx, splitText));
         }
+        var width = maxWidth >= 0 ? maxWidth : ctx.measureText(text).width + 3;
+        var height = splitText ? (splitText.length * (font.getFontSize() + offset)) - offset : font.getFontSize();
+        height = height += font.getFontSize();
+        var align = (font.getAlign() == "center") ? width / 2 : font.getAlign() == "right" ? width : 0;
+        c.width = Math.pow(2, Math.ceil(MMath.logN(2, width)));
+        c.height = Math.pow(2, Math.ceil(MMath.logN(2, height)));
+        font.apply(ctx);
+        if (background) {
+            ctx.fillStyle = background;
+            ctx.fillRect(0, 0, width, height);
+        }
+        if (splitText) {
+            if (font.getFill()) {
+                ctx.fillStyle = font.getFill();
+                for (var i = 0; i < splitText.length; i++) {
+                    var tx = splitText[i];
+                    ctx.fillText(tx, align, i * (font.getFontSize() + offset) + font.getFontSize() / 2);
+                }
+            }
+            if (font.getStroke()) {
+                ctx.strokeStyle = font.getStroke();
+                for (var i = 0; i < splitText.length; i++) {
+                    var tx = splitText[i];
+                    ctx.strokeText(tx, align, i * (font.getFontSize() + offset) + font.getFontSize() / 2);
+                }
+            }
+        }
+        else {
+            if (font.getFill()) {
+                ctx.fillStyle = font.getFill();
+                ctx.fillText(text, align, font.getFontSize() / 2);
+            }
+            if (font.getStroke()) {
+                ctx.strokeStyle = font.getStroke();
+                ctx.strokeText(text, align, font.getFontSize() / 2);
+            }
+        }
+        var nwSrc = c.toDataURL();
+        var tex = new Image();
+        retImg.imgLoaded(c.width, c.height, 0, 0, width, height, false);
+        tex.onload = function () {
+            _this.handleTextureLoaded(tex, texture, false, smooth);
+        };
+        tex.src = nwSrc;
+        return retImg;
     };
-    TextureManager.prototype.initTexture = function (id, src, repeat, smooth) {
+    TextureManager.prototype.getMaxLength = function (ctx, text) {
+        var max = 0;
+        for (var i = 0; i < text.length; i++) {
+            var l = ctx.measureText(text[i]).width;
+            if (l > max)
+                max = l;
+        }
+        return max;
+    };
+    TextureManager.prototype.textSplit = function (text, max, ctx) {
+        var retText = [];
+        var textArr = text.split(" ");
+        var flag = "";
+        for (var i = 0; i < textArr.length; i++) {
+            if (flag.length == 0)
+                flag = textArr[i];
+            else {
+                var subFlag = flag + " " + textArr[i];
+                if (ctx.measureText(subFlag).width > max) {
+                    retText.push(flag);
+                    flag = textArr[i];
+                }
+                else
+                    flag = subFlag;
+            }
+        }
+        if (flag.length > 0)
+            retText.push(flag);
+        return retText;
+    };
+    TextureManager.prototype.initTexture = function (src, repeat, smooth) {
         var _this = this;
         var texture = gl.createTexture();
-        var retImg = new Img(texture, id);
+        var retImg = new Img(texture);
         var img = new Image();
         img.onload = function () {
             if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
@@ -144,11 +169,10 @@ var TexCoord = (function () {
     return TexCoord;
 })();
 var Img = (function () {
-    function Img(texture, id) {
+    function Img(texture) {
         this.callbackLoaded = new Queue();
         this.isLoaded = false;
         this.texture = texture;
-        this.id = id;
     }
     Img.prototype.getId = function () {
         return this.id;
@@ -261,7 +285,7 @@ var Sprite = (function () {
                     rowCount = Math.floor((img.getWidth() - x) / width);
                 var colom = vertical ? i % rowCount : Math.floor(i / rowCount);
                 var row = vertical ? Math.floor(i / rowCount) : i % rowCount;
-                var subImg = new Img(img.getGLTexture(), key);
+                var subImg = new Img(img.getGLTexture());
                 console.log(ths.safe);
                 subImg.imgLoaded(img.maxX(), img.maxY(), x + row * width, y + colom * height, width, height, ths.safe);
                 if (!isAnim)
@@ -278,9 +302,8 @@ var Sprite = (function () {
     };
     Sprite.prototype.do_addImg = function (ths, key, x, y, width, height) {
         return function (img) {
-            console.log(ths.safe);
-            var subImg = new Img(img.getGLTexture(), key);
-            subImg.imgLoaded(img.maxY(), img.maxX(), x, y, width, height, ths.safe);
+            var subImg = new Img(img.getGLTexture());
+            subImg.imgLoaded(img.maxX(), img.maxY(), x, y, width, height, ths.safe);
             ths.subImages.put(key, subImg);
         };
     };
@@ -304,12 +327,58 @@ var Sprite = (function () {
     };
     return Sprite;
 })();
+var FontMap = (function () {
+    function FontMap(font, fontString, smooth, safe, background) {
+        if (fontString === void 0) { fontString = FontMap.fontString; }
+        if (smooth === void 0) { smooth = false; }
+        if (safe === void 0) { safe = false; }
+        this.fontMap = new Sprite(Plena.textImg(fontString, font.align("left"), font.getFontSize() * 12, 8, smooth, background), safe);
+        var c = document.createElement('canvas');
+        var ctx = c.getContext('2d');
+        font.apply(ctx);
+        this.font = font;
+        this.dim = new TreeMap(STRING_COMPARE);
+        this.spaceWidth = ctx.measureText(" ").width;
+        var text = fontString.replace(/\s/g, "");
+        var width = 0;
+        var height = 0;
+        for (var i = 0; i < text.length; i++) {
+            var a = text.charAt(i);
+            var textWidth = ctx.measureText(a).width;
+            var textHeight = font.getFontSize() * 1.20 - 8;
+            if (width + textWidth > font.getFontSize() * 12) {
+                width = 0;
+                height += font.getFontSize() * 1.127;
+            }
+            this.fontMap.addImg(a, width, height, textWidth, textHeight);
+            this.dim.put(a, [textWidth, textHeight]);
+            width += textWidth + this.spaceWidth * 2;
+        }
+    }
+    FontMap.prototype.getFont = function () {
+        return this.font;
+    };
+    FontMap.prototype.getMap = function () {
+        return this.fontMap;
+    };
+    FontMap.prototype.getLetter = function (char) {
+        return this.fontMap.getImg(char);
+    };
+    FontMap.prototype.spacing = function () {
+        return this.spaceWidth;
+    };
+    FontMap.prototype.getDim = function (c) {
+        return this.dim.apply(c);
+    };
+    FontMap.fontString = "!  @  €  \"  #  $  %  ^  &  *  (  )  [  ]  {  }  -  =  ,  .  ;  :  '  >  <  /  ?  \\  |  1  2  3  4  5  6  7  8  9  0  `  ~  a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z  A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z";
+    return FontMap;
+})();
 var WritableTexture = (function () {
     function WritableTexture(width, height, smooth, repeat) {
         var sizeX = Math.pow(2, Math.ceil(MMath.logN(2, width)));
         var sizeY = Math.pow(2, Math.ceil(MMath.logN(2, height)));
         this.frame = new Framebuffer(sizeX, sizeY, smooth, repeat);
-        this.img = new Img(this.frame.getTexture(), "");
+        this.img = new Img(this.frame.getTexture());
         this.img.imgLoaded(sizeX, sizeY, 0, 0, width, height, false);
     }
     WritableTexture.prototype.startWrite = function () {
@@ -335,30 +404,50 @@ var WritableTexture = (function () {
 })();
 var Font = (function () {
     function Font(size, family) {
-        this.baseline = "middle";
-        this.align = "left";
+        this.textAlign = "left";
         this.fontsize = size;
         this.family = family;
     }
-    Font.prototype.fillText = function (color) {
-        this.fill = color;
+    Font.prototype.getFontSize = function () {
+        return this.fontsize;
+    };
+    Font.prototype.getFamily = function () {
+        return this.family;
+    };
+    Font.prototype.getAlign = function () {
+        return this.textAlign;
+    };
+    Font.prototype.getFill = function () {
+        return this.textFill;
+    };
+    Font.prototype.getStroke = function () {
+        console.log(this.textStroke);
+        return this.textStroke;
+    };
+    Font.prototype.apply = function (ctx) {
+        ctx.textAlign = this.getAlign();
+        ctx.textBaseline = "middle";
+        ctx.font = this.getFontSize() + "px " + this.getFamily();
+    };
+    Font.prototype.size = function (size) {
+        this.fontsize = size;
         return this;
     };
-    Font.prototype.strokeText = function (color) {
-        this.stroke = color;
+    Font.prototype.fill = function (r, g, b, a) {
+        this.textFill = "rgba(" + r + "," + g + "," + b + "," + a + ")";
         return this;
     };
-    Font.prototype.setBaseLine = function (pos) {
-        this.baseline = pos;
+    Font.prototype.stroke = function (r, g, b, a) {
+        this.textStroke = "rgba(" + r + "," + g + "," + b + "," + a + ")";
         return this;
     };
-    Font.prototype.setAlign = function (align) {
-        this.align = align;
+    Font.prototype.align = function (align) {
+        this.textAlign = align;
         return this;
     };
     Font.ARIAL = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
-    Font.ARIAL_NARROW = "'Arial Black', 'Arial Bold', Gadget, sans-serif";
-    Font.ARIAL_BOLD = "'Arial Narrow', Arial, sans-serif";
+    Font.ARIAL_BOLD = "'Arial Black', 'Arial Bold', Gadget, sans-serif";
+    Font.ARIAL_NARROW = "'Arial Narrow', Arial, sans-serif";
     Font.ARIAL_ROUNDED = "'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif";
     Font.CALIBRI = "Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif";
     Font.CANDARA = "Candara, Calibri, Segoe, 'Segoe UI', Optima, Arial, sans-serif";

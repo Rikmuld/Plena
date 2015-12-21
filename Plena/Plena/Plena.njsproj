@@ -50,6 +50,7 @@
     <TypeScriptCompile Include="public\tests\t3.ts" />
     <TypeScriptCompile Include="public\tests\t2.ts" />
     <TypeScriptCompile Include="public\tests\t9.ts" />
+    <TypeScriptCompile Include="public\tests\t91.ts" />
     <TypeScriptCompile Include="Scripts\typings\node\node.d.ts" />
     <TypeScriptCompile Include="server.ts" />
     <Content Include="package.json" />

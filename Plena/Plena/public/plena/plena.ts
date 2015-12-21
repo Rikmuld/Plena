@@ -5,6 +5,7 @@
 //loader at start option
 //full screen filters, write entire screen to texture and apply
 //texture load filters
+//bitmap to fontmap loader
 module Plena {
     var renderLp, updateLp: (delta: number) => void;
     var canvas;
@@ -149,14 +150,26 @@ module Plena {
         setupFunc();
         looper()
     }
-
+    
+    export function fontMap(font: Font, safe: boolean = false, smooth: boolean = false, fontstring?: string): FontMap {
+        return new FontMap(font, fontstring, smooth, safe);
+    }
+    export function text(text: string, font: Font, maxWidth: number = -1, offset: number = 0, smooth?: boolean, background?: string):Grix {
+        return new Grix()
+            .fromTexture(Plena.textImg(text, font, maxWidth, offset, smooth, background))
+            .populate();
+    }
+    export function textImg(text: string, font: Font, maxWidth:number = -1, offset:number = 0, smooth?: boolean, background?: string): Img {
+        return textureManager.loadWebFont(text, font, background, maxWidth, offset, smooth);
+    }
+    export function font(family: string, size: number): Font {
+        return new Font(size, family);
+    }
     export function loadSpriteFile(src: string, safe?:boolean, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
-        if (!id) id = src.split("/").pop().split('.')[0];
-        return textureManager.loadSprite(src, id, safe?true:false, repeat, smooth);
+        return textureManager.loadSprite(src, safe?true:false, repeat, smooth);
     }
     export function loadImg(src: string, repeat?: boolean, smooth?: boolean, id?: string): Img {
-        if (!id) id = src.split("/").pop().split('.')[0];
-        return textureManager.loadImg(src, id, repeat, smooth);
+        return textureManager.loadImg(src, repeat, smooth);
     }
     export function mkWritableImg(width: number, height: number, smooth?:boolean, repeat?:boolean): WritableTexture {
         return new WritableTexture(width, height, smooth, repeat);
@@ -166,12 +179,6 @@ module Plena {
     }
     export function restoreProjection() {
         changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3])
-    }
-    export function getSprite(key: string): Sprite {
-        return textureManager.getSprite(key);
-    }
-    export function getImg(key: string): Img {
-        return textureManager.getTexture(key);
     }
     export function bindCameraTo(entity: Entity) {
         if (camera == null) camera = new Camera(entity);
@@ -330,7 +337,7 @@ class Color {
         return hex.length == 1 ? "0" + hex : hex;
     }
 
-    private static toHex(r: number, g: number, b: number):string {
+    static toHex(r: number, g: number, b: number):string {
         return "#" + Color.componentToHex(r) + Color.componentToHex(g) + Color.componentToHex(b);
     }
 }

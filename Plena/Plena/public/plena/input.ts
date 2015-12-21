@@ -53,11 +53,12 @@
         return Mouse.buttons[button];
     }
 }
-
+ //key codes with keypressed
 class Keyboard {
     private static currentlyPressedKeys = new Array(128);
-    private static keyPressedCalls = new DeepTreeMap<number, () => void>(NUMBER_COMPARE);
-    private static keyReleasedCalls = new DeepTreeMap<number, () => void>(NUMBER_COMPARE);
+    private static keyPressedCalls = new DeepTreeMap<number, (event) => void>(NUMBER_COMPARE);
+    private static keyReleasedCalls = new DeepTreeMap<number, (event) => void>(NUMBER_COMPARE);
+    private static keysEnabled = true;
 
     static KEY_BACKSPACE = 8;
     static KEY_TAB = 9;
@@ -165,6 +166,10 @@ class Keyboard {
         document.onkeyup = keyUp;
     }
 
+    static allowBrowserKeys(allow:boolean) {
+        this.keysEnabled = allow;
+    }
+
     static listenForKeys() {
         document.onkeydown = Keyboard.keyDown;
         document.onkeyup = Keyboard.keyUp;
@@ -173,17 +178,23 @@ class Keyboard {
     private static keyDown(event) {
         if (Keyboard.keyPressedCalls.contains(event.keyCode)) {
             var calls = Keyboard.keyPressedCalls.itterator(event.keyCode);
-            for (var i = 0; i < calls.length; i++)if(!Keyboard.currentlyPressedKeys[event.keyCode])calls[i]();
+            for (var i = 0; i < calls.length; i++)if (!Keyboard.currentlyPressedKeys[event.keyCode]) calls[i](event);
         }
         Keyboard.currentlyPressedKeys[event.keyCode] = true;
+        var calls = Keyboard.keyPressedCalls.itterator(-1);
+        for (var i = 0; i < calls.length; i++)calls[i](event);
+
+        return Keyboard.keysEnabled;
     }
 
     private static keyUp(event) {
         Keyboard.currentlyPressedKeys[event.keyCode] = false;
         if (Keyboard.keyReleasedCalls.contains(event.keyCode)) {
             var calls = Keyboard.keyReleasedCalls.itterator(event.keyCode);
-            for (var i = 0; i < calls.length; i++)calls[i]();
+            for (var i = 0; i < calls.length; i++)calls[i](event);
         }
+        var calls = Keyboard.keyReleasedCalls.itterator(-1);
+        for (var i = 0; i < calls.length; i++)calls[i](event);
     }
 
     static isKeyDown(key:number) {
@@ -192,9 +203,11 @@ class Keyboard {
 
     static addReleasedEvent(callback, ...key: number[]) {
         for (var i = 0; i < key.length; i++)Keyboard.keyReleasedCalls.put(key[i], callback);
+        if (key.length == 0) Keyboard.keyReleasedCalls.put(-1, callback);
     }
 
     static addPressedEvent(callback, ...key: number[]) {
         for (var i = 0; i < key.length; i++)Keyboard.keyPressedCalls.put(key[i], callback);
+        if (key.length == 0) Keyboard.keyPressedCalls.put(-1, callback);
     }
 }

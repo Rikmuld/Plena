@@ -11,7 +11,8 @@
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    __.prototype = b.prototype;
+    d.prototype = new __();
 };
 var Grix = (function () {
     function Grix(customShader) {
@@ -51,7 +52,6 @@ var Grix = (function () {
             this.drawer.addIndieces(this.indiec.toArray());
             this.height = Math.abs(this.maxY - this.minY);
             this.width = Math.abs(this.maxX - this.minX);
-            console.log(this.width, this.height);
         }
         Plena.manager().addGrix(this.getShader(), this);
         this.isFinal = true;
@@ -123,7 +123,6 @@ var Grix = (function () {
     Grix.prototype.polygon = function (radius, corners) {
         return this.circle(radius, corners);
     };
-    //make compoundable
     Grix.prototype.ellipse = function (radiusX, radiusY, parts) {
         if (parts === void 0) { parts = 30; }
         var coords = [radiusX, radiusY];
@@ -369,6 +368,7 @@ var Grix = (function () {
         }
         this.end();
         this.clean();
+        this.getShader().getMatHandler().setUVMatrix(Matrix4.identity());
     };
     Grix.prototype.mirrorHorizontal = function (mirror) {
         this.mirrorX = mirror;
@@ -415,6 +415,112 @@ var WritableGrix = (function (_super) {
         this.writable.stopWrite();
     };
     return WritableGrix;
+})(Grix);
+var TextGrix = (function (_super) {
+    __extends(TextGrix, _super);
+    //some ort of offset x for fomnts that are close to each other
+    function TextGrix(fontMap, customShader) {
+        _super.call(this, customShader);
+        this.yOffset = 0;
+        this.xOffset = 0;
+        this.addSprite(fontMap.getMap());
+        this.rect(1, 1);
+        this.populate();
+        this.fontMap = fontMap;
+    }
+    TextGrix.prototype.fontsize = function (px) {
+        var size = px / this.fontMap.getFont().getFontSize();
+        this.scaleTo(size, size);
+    };
+    TextGrix.prototype.offsetY = function (offset) {
+        this.yOffset = offset;
+    };
+    TextGrix.prototype.offsetX = function (offset) {
+        this.xOffset = offset;
+    };
+    TextGrix.prototype.clean = function () {
+        _super.prototype.clean.call(this);
+        this.yOffset = 0;
+        this.xOffset = 0;
+    };
+    TextGrix.prototype.text = function (text, maxWidth) {
+        if (maxWidth === void 0) { maxWidth = -1; }
+        var x = this.xT;
+        var y = this.yT;
+        if (maxWidth != -1) {
+            var textArr = text.split(" ");
+            var width = 0;
+            for (var i = 0; i < textArr.length; i++) {
+                var tx = textArr[i];
+                if (width > 0 && width + this.length(tx) > maxWidth) {
+                    width = 0;
+                    this.moveXTo(x);
+                    this.move(0, (this.fontMap.getDim("a")[1] + this.yOffset) * this.sYT);
+                    width += this.do_text(tx + " ");
+                }
+                else {
+                    width += this.do_text(tx + " ");
+                }
+            }
+        }
+        else {
+            this.do_text(text);
+        }
+    };
+    TextGrix.prototype.length = function (text) {
+        var length = 0;
+        for (var i = 0; i < text.length; i++) {
+            var char = text.charAt(i);
+            length += this.fontMap.getDim(char)[0] * this.sXT + this.xOffset;
+        }
+        return length;
+    };
+    TextGrix.prototype.textSplit = function (text, max, ctx) {
+        var retText = [];
+        var textArr = text.split(" ");
+        var flag = "";
+        for (var i = 0; i < textArr.length; i++) {
+            if (flag.length == 0)
+                flag = textArr[i];
+            else {
+                var subFlag = flag + " " + textArr[i];
+                if (ctx.measureText(subFlag).width > max) {
+                    retText.push(flag);
+                    flag = textArr[i];
+                }
+                else
+                    flag = subFlag;
+            }
+        }
+        if (flag.length > 0)
+            retText.push(flag);
+        return retText;
+    };
+    TextGrix.prototype.do_text = function (text) {
+        var dX = this.sXT;
+        var dY = this.sYT;
+        var widthTotal = 0;
+        for (var i = 0; i < text.length; i++) {
+            var a = text.charAt(i);
+            if (a == " ") {
+                this.move(this.fontMap.spacing() * dX + this.xOffset, 0);
+                widthTotal += this.fontMap.spacing() * dX + this.xOffset;
+            }
+            else {
+                var dim = this.fontMap.getDim(a);
+                var height = dim[1];
+                var width = dim[0];
+                this.setActiveImg(a);
+                this.scaleToSize(width * dX, height * dY);
+                this.render();
+                this.move(width * dX + this.xOffset, 0);
+                widthTotal += width * dX + this.xOffset;
+            }
+        }
+        this.scaleTo(dX, dY);
+        return widthTotal;
+    };
+    return TextGrix;
 })(Grix);
 var Shader = (function () {
     function Shader(id, shaderVars, p2, p3) {

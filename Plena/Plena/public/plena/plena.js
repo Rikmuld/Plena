@@ -4,6 +4,7 @@ var gl;
 //loader at start option
 //full screen filters, write entire screen to texture and apply
 //texture load filters
+//bitmap to fontmap loader
 var Plena;
 (function (Plena) {
     var renderLp, updateLp;
@@ -56,6 +57,8 @@ var Plena;
             gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); \
             UV = (UVMatrix * vec4(vertexUV, 1, 1)).xy; \
         } ";
+    Plena.width;
+    Plena.height;
     var colorShader;
     var textureShader;
     var spriteManager;
@@ -127,16 +130,36 @@ var Plena;
         looper();
     }
     Plena.init = init;
+    function fontMap(font, safe, smooth, fontstring) {
+        if (safe === void 0) { safe = false; }
+        if (smooth === void 0) { smooth = false; }
+        return new FontMap(font, fontstring, smooth, safe);
+    }
+    Plena.fontMap = fontMap;
+    function text(text, font, maxWidth, offset, smooth, background) {
+        if (maxWidth === void 0) { maxWidth = -1; }
+        if (offset === void 0) { offset = 0; }
+        return new Grix()
+            .fromTexture(Plena.textImg(text, font, maxWidth, offset, smooth, background))
+            .populate();
+    }
+    Plena.text = text;
+    function textImg(text, font, maxWidth, offset, smooth, background) {
+        if (maxWidth === void 0) { maxWidth = -1; }
+        if (offset === void 0) { offset = 0; }
+        return textureManager.loadWebFont(text, font, background, maxWidth, offset, smooth);
+    }
+    Plena.textImg = textImg;
+    function font(family, size) {
+        return new Font(size, family);
+    }
+    Plena.font = font;
     function loadSpriteFile(src, safe, repeat, smooth, id) {
-        if (!id)
-            id = src.split("/").pop().split('.')[0];
-        return textureManager.loadSprite(src, id, safe ? true : false, repeat, smooth);
+        return textureManager.loadSprite(src, safe ? true : false, repeat, smooth);
     }
     Plena.loadSpriteFile = loadSpriteFile;
     function loadImg(src, repeat, smooth, id) {
-        if (!id)
-            id = src.split("/").pop().split('.')[0];
-        return textureManager.loadImg(src, id, repeat, smooth);
+        return textureManager.loadImg(src, repeat, smooth);
     }
     Plena.loadImg = loadImg;
     function mkWritableImg(width, height, smooth, repeat) {
@@ -151,14 +174,6 @@ var Plena;
         changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3]);
     }
     Plena.restoreProjection = restoreProjection;
-    function getSprite(key) {
-        return textureManager.getSprite(key);
-    }
-    Plena.getSprite = getSprite;
-    function getImg(key) {
-        return textureManager.getTexture(key);
-    }
-    Plena.getImg = getImg;
     function bindCameraTo(entity) {
         if (camera == null)
             camera = new Camera(entity);

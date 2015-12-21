@@ -42,12 +42,16 @@ var Mouse = (function () {
     Mouse.buttons = new Array(10);
     return Mouse;
 })();
+//key codes with keypressed
 var Keyboard = (function () {
     function Keyboard() {
     }
     Keyboard.listenForKeysCustom = function (keyDown, keyUp) {
         document.onkeydown = keyDown;
         document.onkeyup = keyUp;
+    };
+    Keyboard.allowBrowserKeys = function (allow) {
+        this.keysEnabled = allow;
     };
     Keyboard.listenForKeys = function () {
         document.onkeydown = Keyboard.keyDown;
@@ -58,17 +62,24 @@ var Keyboard = (function () {
             var calls = Keyboard.keyPressedCalls.itterator(event.keyCode);
             for (var i = 0; i < calls.length; i++)
                 if (!Keyboard.currentlyPressedKeys[event.keyCode])
-                    calls[i]();
+                    calls[i](event);
         }
         Keyboard.currentlyPressedKeys[event.keyCode] = true;
+        var calls = Keyboard.keyPressedCalls.itterator(-1);
+        for (var i = 0; i < calls.length; i++)
+            calls[i](event);
+        return Keyboard.keysEnabled;
     };
     Keyboard.keyUp = function (event) {
         Keyboard.currentlyPressedKeys[event.keyCode] = false;
         if (Keyboard.keyReleasedCalls.contains(event.keyCode)) {
             var calls = Keyboard.keyReleasedCalls.itterator(event.keyCode);
             for (var i = 0; i < calls.length; i++)
-                calls[i]();
+                calls[i](event);
         }
+        var calls = Keyboard.keyReleasedCalls.itterator(-1);
+        for (var i = 0; i < calls.length; i++)
+            calls[i](event);
     };
     Keyboard.isKeyDown = function (key) {
         return Keyboard.currentlyPressedKeys[key];
@@ -80,6 +91,8 @@ var Keyboard = (function () {
         }
         for (var i = 0; i < key.length; i++)
             Keyboard.keyReleasedCalls.put(key[i], callback);
+        if (key.length == 0)
+            Keyboard.keyReleasedCalls.put(-1, callback);
     };
     Keyboard.addPressedEvent = function (callback) {
         var key = [];
@@ -88,10 +101,13 @@ var Keyboard = (function () {
         }
         for (var i = 0; i < key.length; i++)
             Keyboard.keyPressedCalls.put(key[i], callback);
+        if (key.length == 0)
+            Keyboard.keyPressedCalls.put(-1, callback);
     };
     Keyboard.currentlyPressedKeys = new Array(128);
     Keyboard.keyPressedCalls = new DeepTreeMap(NUMBER_COMPARE);
     Keyboard.keyReleasedCalls = new DeepTreeMap(NUMBER_COMPARE);
+    Keyboard.keysEnabled = true;
     Keyboard.KEY_BACKSPACE = 8;
     Keyboard.KEY_TAB = 9;
     Keyboard.KEY_ENTER = 13;
