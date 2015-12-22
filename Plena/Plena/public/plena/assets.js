@@ -1,18 +1,160 @@
-//make no safe default and save in sepearte thing if wanted option
-var TextureManager = (function () {
-    function TextureManager() {
-    }
-    TextureManager.prototype.loadSprite = function (src, safe, repeat, smooth) {
-        return new Sprite(this.initTexture(src, repeat ? true : false, smooth ? true : false), safe);
-    };
-    TextureManager.prototype.loadImg = function (src, repeat, smooth) {
-        return this.initTexture(src, repeat ? true : false, smooth ? true : false);
-    };
-    TextureManager.prototype.loadWebFont = function (text, font, background, maxWidth, offset, smooth) {
-        var _this = this;
-        if (maxWidth === void 0) { maxWidth = -1; }
-        if (offset === void 0) { offset = 0; }
+/**
+ * Helper functions for loading and creating assets
+ */
+var Assets;
+(function (Assets) {
+    /**
+     * Pre set TextureOption handy for non pixel perfect textures (smooth = true, safe = false, repeat = false)
+     */
+    Assets.NORMAL = options(true, false, false);
+    /**
+     * Pre set TextureOption handy for pixel perfect textures (smooth = false, safe = false, repeat = false)
+     */
+    Assets.PIXEL_NORMAL = options(false, false, false);
+    /**
+     * Pre set TextureOption (same as TILE_SHEET) handy for rendering letters (smooth = true, safe = true, repeat = false)
+     */
+    Assets.LETTERS = options(true, true, false);
+    /**
+     * Pre set TextureOption (same as LETTERS) handy for non pixel perfect tile sheets (smooth = true, safe = true, repeat = false)
+     */
+    Assets.TILE_SHEET = options(true, true, false);
+    /**
+     * Per set TextureOption handy for pixel perfect tile sheets (smooth = false, safe = true, repeat = false)
+     */
+    Assets.PIXEL_TILE_SHEET = options(false, true, false);
+    /**
+     * Per set TextureOption handy for endless non pixel perfect backgrounds (smooth = true, safe = false, repeat = true)
+     */
+    Assets.BACKGROUND = options(true, false, true);
+    /**
+     * Per set TextureOption handy for endless pixel perfect backgrounds (smooth = false, safe = false, repeat = true)
+     */
+    Assets.PIXEL_BACKGROUND = options(false, false, true);
+    /**
+     * Create a new TextureOptions
+     *
+     * @param smooth when true a linear filter will be used, false for a nearest filter (defaults to false)
+     * @param safe will remove possible artifacts by slightly decresing uv coord bounds, use for tilesheets (defaults to false)
+     * @param repeat whether or not a texture should repeat itself when uv coords are out of the textures bounds (defaults to false)
+     */
+    function options(smooth, safe, repeat) {
         if (smooth === void 0) { smooth = false; }
+        if (safe === void 0) { safe = false; }
+        if (repeat === void 0) { repeat = false; }
+        var options = {};
+        options.smooth = smooth;
+        options.safe = safe;
+        options.repeat = repeat;
+        return options;
+    }
+    Assets.options = options;
+    /**
+     * Load an img file
+     *
+     * @param src filepath
+     * @param options texture options used when loading img
+     */
+    function loadImg(src, options) {
+        if (options === void 0) { options = Assets.PIXEL_NORMAL; }
+        var texture = gl.createTexture();
+        var retImg = new Img(texture);
+        var img = new Image();
+        img.onload = function () {
+            if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
+                retImg.imgLoaded(img.width, img.height, 0, 0, img.width, img.height, false);
+                dataToTexture(img, texture, options);
+            }
+            else {
+                var ctx = mkCanvas(Math.pow(2, Math.ceil(MMath.logN(2, img.width))), Math.pow(2, Math.ceil(MMath.logN(2, img.height))));
+                var c = ctx.canvas;
+                ctx.drawImage(img, 0, 0);
+                retImg.imgLoaded(c.width, c.height, 0, 0, img.width, img.height, false);
+                dataToTexture(ctx, texture, options);
+            }
+        };
+        img.src = src;
+        return retImg;
+    }
+    Assets.loadImg = loadImg;
+    /**
+     * Load a sprite sheet. Same as loadImg, but wraps the Img in a Sprite
+     *
+     * @param src filepath
+     * @param options texture options used when loading img
+     */
+    function loadSprite(src, options) {
+        if (options === void 0) { options = Assets.PIXEL_NORMAL; }
+        return new Sprite(loadImg(src, options), options.safe);
+    }
+    Assets.loadSprite = loadSprite;
+    /**
+     * Load an audio file
+     *
+     * @param src filepath
+     */
+    function loadAudio(src) {
+        var container = document.createElement("audio");
+        var source = document.createElement("source");
+        source.setAttribute('type', "audio/ogg");
+        source.setAttribute('src', src);
+        container.appendChild(source);
+        document.body.appendChild(container);
+        return new AudioObj(container);
+    }
+    Assets.loadAudio = loadAudio;
+    /**
+     * Creates a new canvas of specific size and returns its 2d context, later you can use getTexure to create a texture from the context
+     *
+     * @param with the with of the canvas
+     * @param height the height of the canvas
+     */
+    function mkCanvas(width, height) {
+        var canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        return canvas.getContext('2d');
+    }
+    Assets.mkCanvas = mkCanvas;
+    function mkFontMap(par1, par2, par3, xOffset, background) {
+        if (par2 === void 0) { par2 = Assets.LETTERS; }
+        if (isFont(par1)) {
+            return new FontMap(par1, par2, par3, xOffset, background);
+        }
+        else
+            return new FontMap(par1, par2, par3);
+    }
+    Assets.mkFontMap = mkFontMap;
+    function isFont(f) {
+        return (f.getFontSize) ? true : false;
+    }
+    /**
+     * Creates a WritableImg of specific size, you can write to it with a WritableGrix (uses framebuffers)
+     *
+     * @param width width of the texture
+     * @param height height of the texture
+     * @param options texture options when creating texture
+     */
+    function mkWritableImg(width, height, options) {
+        if (options === void 0) { options = Assets.PIXEL_NORMAL; }
+        return new WritableImg(width, height, options.smooth, options.repeat);
+    }
+    Assets.mkWritableImg = mkWritableImg;
+    /**
+     * Creates a texture from a string of text
+     *
+     * @param text string of text to draw
+     * @param font font to draw the text in
+     * @param options texture options when creating texture
+     * @param maxWidth line break length, -1 for endless lines (defaults to -1)
+     * @param yOffset y offset between lines, 0 for normal offset (defaults to 0)
+     * @param background background color of texture (defaults to full transparancy)
+     */
+    function mkTextImg(text, font, options, maxWidth, yOffset, background) {
+        if (maxWidth === void 0) { maxWidth = -1; }
+        if (yOffset === void 0) { yOffset = 0; }
+        if (!options)
+            options = Assets.LETTERS;
         var texture = gl.createTexture();
         var retImg = new Img(texture);
         var c = document.createElement('canvas');
@@ -20,33 +162,32 @@ var TextureManager = (function () {
         font.apply(ctx);
         var splitText;
         if (maxWidth >= 0) {
-            var splitText = this.textSplit(text, maxWidth, ctx);
-            maxWidth = Math.max(maxWidth, this.getMaxLength(ctx, splitText));
+            splitText = textSplit(text, maxWidth, ctx);
+            maxWidth = Math.max(maxWidth, getMaxLength(ctx, splitText));
         }
         var width = maxWidth >= 0 ? maxWidth : ctx.measureText(text).width + 3;
-        var height = splitText ? (splitText.length * (font.getFontSize() + offset)) - offset : font.getFontSize();
-        height = height += font.getFontSize();
+        var height = splitText ? (splitText.length * (font.getFontSize() + yOffset)) - yOffset : font.getFontSize();
         var align = (font.getAlign() == "center") ? width / 2 : font.getAlign() == "right" ? width : 0;
+        height = height += font.getFontSize();
         c.width = Math.pow(2, Math.ceil(MMath.logN(2, width)));
         c.height = Math.pow(2, Math.ceil(MMath.logN(2, height)));
+        retImg.imgLoaded(c.width, c.height, 0, 0, width, height, false);
         font.apply(ctx);
         if (background) {
-            ctx.fillStyle = background;
+            ctx.fillStyle = background.style();
             ctx.fillRect(0, 0, width, height);
         }
         if (splitText) {
             if (font.getFill()) {
                 ctx.fillStyle = font.getFill();
                 for (var i = 0; i < splitText.length; i++) {
-                    var tx = splitText[i];
-                    ctx.fillText(tx, align, i * (font.getFontSize() + offset) + font.getFontSize() / 2);
+                    ctx.fillText(splitText[i], align, i * (font.getFontSize() + yOffset) + font.getFontSize() / 2);
                 }
             }
             if (font.getStroke()) {
                 ctx.strokeStyle = font.getStroke();
                 for (var i = 0; i < splitText.length; i++) {
-                    var tx = splitText[i];
-                    ctx.strokeText(tx, align, i * (font.getFontSize() + offset) + font.getFontSize() / 2);
+                    ctx.strokeText(splitText[i], align, i * (font.getFontSize() + yOffset) + font.getFontSize() / 2);
                 }
             }
         }
@@ -60,36 +201,33 @@ var TextureManager = (function () {
                 ctx.strokeText(text, align, font.getFontSize() / 2);
             }
         }
-        var nwSrc = c.toDataURL();
-        var tex = new Image();
-        retImg.imgLoaded(c.width, c.height, 0, 0, width, height, false);
-        tex.onload = function () {
-            _this.handleTextureLoaded(tex, texture, false, smooth);
-        };
-        tex.src = nwSrc;
+        dataToTexture(ctx, texture, options);
         return retImg;
-    };
-    TextureManager.prototype.getMaxLength = function (ctx, text) {
+    }
+    Assets.mkTextImg = mkTextImg;
+    function getMaxLength(ctx, text) {
         var max = 0;
-        for (var i = 0; i < text.length; i++) {
-            var l = ctx.measureText(text[i]).width;
+        for (var _i = 0; _i < text.length; _i++) {
+            var tx = text[_i];
+            var l = ctx.measureText(tx).width;
             if (l > max)
                 max = l;
         }
         return max;
-    };
-    TextureManager.prototype.textSplit = function (text, max, ctx) {
+    }
+    function textSplit(text, max, ctx) {
         var retText = [];
         var textArr = text.split(" ");
         var flag = "";
-        for (var i = 0; i < textArr.length; i++) {
+        for (var _i = 0; _i < textArr.length; _i++) {
+            var tx = textArr[_i];
             if (flag.length == 0)
-                flag = textArr[i];
+                flag = tx;
             else {
-                var subFlag = flag + " " + textArr[i];
+                var subFlag = flag + " " + tx;
                 if (ctx.measureText(subFlag).width > max) {
                     retText.push(flag);
-                    flag = textArr[i];
+                    flag = tx;
                 }
                 else
                     flag = subFlag;
@@ -98,47 +236,61 @@ var TextureManager = (function () {
         if (flag.length > 0)
             retText.push(flag);
         return retText;
-    };
-    TextureManager.prototype.initTexture = function (src, repeat, smooth) {
-        var _this = this;
+    }
+    /**
+     * Creates a new Font, most font properties can be set later
+     *
+     * @param family font family of font, cannot be changed
+     * @param size, fontsize, can be changed
+     */
+    function getFont(family, size) {
+        return new Font(family, size);
+    }
+    Assets.getFont = getFont;
+    /**
+     * Create a texture from a CanvasRenderingContext2D
+     *
+     * @param ctx the context
+     * @param options texture options used when creating texture
+     */
+    function getTexture(ctx, options) {
+        if (!options)
+            options = Assets.PIXEL_NORMAL;
+        var c = ctx.canvas;
+        var width = c.width;
+        var height = c.height;
         var texture = gl.createTexture();
         var retImg = new Img(texture);
-        var img = new Image();
-        img.onload = function () {
-            if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
-                retImg.imgLoaded(img.width, img.height, 0, 0, img.width, img.height, false);
-                _this.handleTextureLoaded(img, texture, repeat, smooth);
-            }
-            else {
-                var c = document.createElement('canvas');
-                c.width = Math.pow(2, Math.ceil(MMath.logN(2, img.width)));
-                c.height = Math.pow(2, Math.ceil(MMath.logN(2, img.height)));
-                var ctx = c.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                var nwSrc = c.toDataURL();
-                var tex = new Image();
-                retImg.imgLoaded(c.width, c.height, 0, 0, img.width, img.height, false);
-                tex.onload = function () {
-                    _this.handleTextureLoaded(tex, texture, repeat, smooth);
-                };
-                tex.src = nwSrc;
-            }
-        };
-        img.src = src;
+        var data = ctx.getImageData(0, 0, width, height);
+        c.width = Math.pow(2, Math.ceil(MMath.logN(2, width)));
+        c.height = Math.pow(2, Math.ceil(MMath.logN(2, height)));
+        retImg.imgLoaded(c.width, c.height, 0, 0, width, height, options.safe);
+        ctx.putImageData(data, 0, 0);
+        dataToTexture(ctx, texture, options);
         return retImg;
-    };
-    TextureManager.prototype.handleTextureLoaded = function (image, texture, repeat, smooth) {
+    }
+    Assets.getTexture = getTexture;
+    function dataToTexture(thing, texture, options) {
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, smooth ? gl.LINEAR : gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, smooth ? gl.LINEAR_MIPMAP_NEAREST : gl.NEAREST_MIPMAP_NEAREST);
-        if (repeat)
+        if (isCtx(thing)) {
+            var c = thing.canvas;
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, thing.getImageData(0, 0, c.width, c.height));
+        }
+        else {
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, thing);
+        }
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, options.smooth ? gl.LINEAR : gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, options.smooth ? gl.LINEAR_MIPMAP_NEAREST : gl.NEAREST_MIPMAP_NEAREST);
+        if (options.repeat) {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        }
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindTexture(gl.TEXTURE_2D, null);
-    };
-    return TextureManager;
-})();
+    }
+    function isCtx(c) {
+        return (c.canvas) ? true : false;
+    }
+})(Assets || (Assets = {}));
 var TexCoord = (function () {
     function TexCoord(xMin, yMin, width, height, maxX, maxY, safe) {
         this.minX = (xMin + (safe ? 0.5 : 0)) / maxX;
@@ -148,10 +300,10 @@ var TexCoord = (function () {
         this.width = width;
         this.height = height;
     }
-    TexCoord.prototype.getWidthFromHeight = function (height) {
+    TexCoord.prototype.widthFHeight = function (height) {
         return ((this.maxX - this.minX) / (this.maxY - this.minY)) * height;
     };
-    TexCoord.prototype.getHeightFromWidth = function (width) {
+    TexCoord.prototype.heightFWidth = function (width) {
         return ((this.maxY - this.minY) / (this.maxX - this.minX)) * width;
     };
     TexCoord.prototype.getXMax = function () {
@@ -174,9 +326,6 @@ var Img = (function () {
         this.isLoaded = false;
         this.texture = texture;
     }
-    Img.prototype.getId = function () {
-        return this.id;
-    };
     Img.prototype.imgLoaded = function (maxX, maxY, x, y, width, height, safe) {
         this.sizeX = maxX;
         this.sizeY = maxY;
@@ -223,15 +372,11 @@ var Sprite = (function () {
     function Sprite(img, safe) {
         this.img = img;
         this.subImages = new TreeMap(STRING_COMPARE);
-        this.id = img.getId();
         if (safe)
             this.safe = true;
     }
     Sprite.prototype.onLoaded = function (call) {
         this.img.onLoaded(call);
-    };
-    Sprite.prototype.getId = function () {
-        return this.id;
     };
     Sprite.prototype.getImgs = function () {
         return this.subImages.values();
@@ -328,35 +473,62 @@ var Sprite = (function () {
     return Sprite;
 })();
 var FontMap = (function () {
-    function FontMap(font, fontString, smooth, safe, background) {
-        if (fontString === void 0) { fontString = FontMap.fontString; }
-        if (smooth === void 0) { smooth = false; }
-        if (safe === void 0) { safe = false; }
-        this.fontMap = new Sprite(Plena.textImg(fontString, font.align("left"), font.getFontSize() * 12, 8, smooth, background), safe);
-        var c = document.createElement('canvas');
-        var ctx = c.getContext('2d');
-        font.apply(ctx);
-        this.font = font;
+    function FontMap(thing, info, info2, xOffset, background) {
+        if (info2 === void 0) { info2 = FontMap.BASIC_KEYS; }
         this.dim = new TreeMap(STRING_COMPARE);
-        this.spaceWidth = ctx.measureText(" ").width;
-        var text = fontString.replace(/\s/g, "");
-        var width = 0;
-        var height = 0;
-        for (var i = 0; i < text.length; i++) {
-            var a = text.charAt(i);
-            var textWidth = ctx.measureText(a).width;
-            var textHeight = font.getFontSize() * 1.20 - 8;
-            if (width + textWidth > font.getFontSize() * 12) {
-                width = 0;
-                height += font.getFontSize() * 1.127;
+        if (thing.getFontSize) {
+            xOffset = typeof xOffset == 'number' ? xOffset : 2;
+            var font = thing;
+            var fontString = FontMap.mkCharSet(info2, xOffset);
+            this.fontMap = new Sprite(Assets.mkTextImg(fontString, font.align("left"), info, font.getFontSize() * 12, 20, background), info.safe);
+            var c = document.createElement('canvas');
+            var ctx = c.getContext('2d');
+            font.apply(ctx);
+            this.size = font.getFontSize();
+            this.spaceWidth = ctx.measureText(" ").width;
+            var text = fontString.replace(/\s/g, "");
+            var width = 0;
+            var height = 0;
+            for (var i = 0; i < text.length; i++) {
+                var a = text.charAt(i);
+                var textWidth = ctx.measureText(a).width;
+                var textHeight = font.getFontSize() * 1.20;
+                if (width + textWidth > font.getFontSize() * 12) {
+                    width = 0;
+                    height += font.getFontSize() * 1 + 20;
+                }
+                this.fontMap.addImg(a, width, height, textWidth, textHeight);
+                this.dim.put(a, [textWidth, textHeight]);
+                width += textWidth + this.spaceWidth * xOffset;
             }
-            this.fontMap.addImg(a, width, height, textWidth, textHeight);
-            this.dim.put(a, [textWidth, textHeight]);
-            width += textWidth + this.spaceWidth * 2;
+        }
+        else {
+            this.fontMap = thing;
+            this.spaceWidth = info;
+            this.size = info2;
+            var letters = this.fontMap.getImgs();
+            var keys = this.fontMap.getImgNames();
+            for (var i = 0; i < letters.length; i++) {
+                var key = keys[i];
+                var letter = letters[i];
+                this.dim.put(key, [letter.getWidth(), letter.getHeight()]);
+            }
         }
     }
-    FontMap.prototype.getFont = function () {
-        return this.font;
+    FontMap.mkCharSet = function (text, spaces) {
+        if (spaces === void 0) { spaces = 2; }
+        var chars = text.replace(/\s/g, "");
+        var retChars = "";
+        for (var i = 0; i < chars.length; i++) {
+            if (i > 0)
+                for (var j = 0; j < spaces; j++)
+                    retChars += " ";
+            retChars += chars.charAt(i);
+        }
+        return retChars;
+    };
+    FontMap.prototype.defaultSize = function () {
+        return this.size;
     };
     FontMap.prototype.getMap = function () {
         return this.fontMap;
@@ -370,40 +542,40 @@ var FontMap = (function () {
     FontMap.prototype.getDim = function (c) {
         return this.dim.apply(c);
     };
-    FontMap.fontString = "!  @  €  \"  #  $  %  ^  &  *  (  )  [  ]  {  }  -  =  ,  .  ;  :  '  >  <  /  ?  \\  |  1  2  3  4  5  6  7  8  9  0  `  ~  a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z  A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z";
+    FontMap.BASIC_KEYS = "!@€\"#$%^&*()[]{}-=,.;:'></?\\|1234567890`~abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     return FontMap;
 })();
-var WritableTexture = (function () {
-    function WritableTexture(width, height, smooth, repeat) {
+var WritableImg = (function () {
+    function WritableImg(width, height, smooth, repeat) {
         var sizeX = Math.pow(2, Math.ceil(MMath.logN(2, width)));
         var sizeY = Math.pow(2, Math.ceil(MMath.logN(2, height)));
         this.frame = new Framebuffer(sizeX, sizeY, smooth, repeat);
         this.img = new Img(this.frame.getTexture());
         this.img.imgLoaded(sizeX, sizeY, 0, 0, width, height, false);
     }
-    WritableTexture.prototype.startWrite = function () {
+    WritableImg.prototype.startWrite = function () {
         Plena.saveProjection();
         Plena.changeProjection(0, this.img.getWidth(), 0, this.img.getHeight());
         this.frame.startRenderTo();
     };
-    WritableTexture.prototype.stopWrite = function () {
+    WritableImg.prototype.stopWrite = function () {
         Plena.forceRender();
         this.frame.stopRenderTo();
         Plena.restoreProjection();
     };
-    WritableTexture.prototype.getTexture = function () {
+    WritableImg.prototype.getTexture = function () {
         return this.frame.getTexture();
     };
-    WritableTexture.prototype.getImg = function () {
+    WritableImg.prototype.getImg = function () {
         return this.img;
     };
-    WritableTexture.prototype.bind = function () {
+    WritableImg.prototype.bind = function () {
         this.img.bind();
     };
-    return WritableTexture;
+    return WritableImg;
 })();
 var Font = (function () {
-    function Font(size, family) {
+    function Font(family, size) {
         this.textAlign = "left";
         this.fontsize = size;
         this.family = family;
@@ -433,68 +605,24 @@ var Font = (function () {
         this.fontsize = size;
         return this;
     };
-    Font.prototype.fill = function (r, g, b, a) {
-        this.textFill = "rgba(" + r + "," + g + "," + b + "," + a + ")";
+    Font.prototype.fill = function (color) {
+        this.textFill = color.style();
         return this;
     };
-    Font.prototype.stroke = function (r, g, b, a) {
-        this.textStroke = "rgba(" + r + "," + g + "," + b + "," + a + ")";
+    Font.prototype.stroke = function (color) {
+        this.textStroke = color.style();
         return this;
     };
     Font.prototype.align = function (align) {
         this.textAlign = align;
         return this;
     };
-    Font.ARIAL = "Arial, 'Helvetica Neue', Helvetica, sans-serif";
-    Font.ARIAL_BOLD = "'Arial Black', 'Arial Bold', Gadget, sans-serif";
-    Font.ARIAL_NARROW = "'Arial Narrow', Arial, sans-serif";
-    Font.ARIAL_ROUNDED = "'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif";
-    Font.CALIBRI = "Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif";
-    Font.CANDARA = "Candara, Calibri, Segoe, 'Segoe UI', Optima, Arial, sans-serif";
-    Font.CENTURY_GOTHIC = "'Century Gothic', CenturyGothic, AppleGothic, sans-serif";
-    Font.GILL_SANS = "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif";
-    Font.HELVETICA = "'Helvetica Neue', Helvetica, Arial, sans-serif";
-    Font.TAHOMA = "Tahoma, Verdana, Segoe, sans-serif";
-    Font.TREBUCHET_MS = "'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif";
-    Font.VERDANA = "Verdana, Geneva, sans-serif";
-    Font.BOOK_ANTIQUA = "'Book Antiqua', Palatino, 'Palatino Linotype', 'Palatino LT STD', Georgia, serif";
-    Font.CAMBRIA = "Cambria, Georgia, serif";
-    Font.GARAMOND = "Garamond, Baskerville, 'Baskerville Old Face', 'Hoefler Text', 'Times New Roman', serif";
-    Font.GEORGRIA = "Georgia, Times, 'Times New Roman', serif";
-    Font.LUCIDA_BRIGHT = "'Lucida Bright', Georgia, serif";
-    Font.PALATINO = "Palatino, 'Palatino Linotype', 'Palatino LT STD', 'Book Antiqua', Georgia, serif";
-    Font.BASKERVILLE = "Baskerville, 'Baskerville Old Face', 'Hoefler Text', Garamond, 'Times New Roman', serif";
-    Font.TIMES_NEW_ROMAN = "TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif";
-    Font.CONSOLAS = "Consolas, monaco, monospace";
-    Font.COURIER_NEW = "'Courier New', Courier, 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace";
-    Font.MONACO = "monaco, Consolas, 'Lucida Console', monospace";
-    Font.COPPERPLATE = "Copperplate, 'Copperplate Gothic Light', fantasy";
-    Font.PAPYRUS = "Papyrus, fantasy";
-    Font.BRUSH_SCRIPT_MT = "'Brush Script MT', cursive";
     return Font;
 })();
-var AudioManager = (function () {
-    function AudioManager() {
-        this.audio = new TreeMap(STRING_COMPARE);
-    }
-    AudioManager.prototype.getAudio = function (key) {
-        return this.audio.apply(key);
-    };
-    AudioManager.prototype.hasAudio = function (key) {
-        return this.audio.contains(key);
-    };
-    AudioManager.prototype.loadAudio = function (key, audioName) {
-        var container = document.createElement("audio");
-        var source = document.createElement("source");
-        container.setAttribute('id', key);
-        source.setAttribute('type', "audio/ogg");
-        source.setAttribute('src', audioName);
-        container.appendChild(source);
-        document.body.appendChild(container);
-        this.audio.put(key, new AudioObj(container));
-    };
-    return AudioManager;
-})();
+var Font;
+(function (Font) {
+    Font.ARIAL = "Arial, 'Helvetica Neue', Helvetica, sans-serif", Font.ARIAL_BOLD = "'Arial Black', 'Arial Bold', Gadget, sans-serif", Font.ARIAL_NARROW = "'Arial Narrow', Arial, sans-serif", Font.ARIAL_ROUNDED = "'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif", Font.CALIBRI = "Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif", Font.CANDARA = "Candara, Calibri, Segoe, 'Segoe UI', Optima, Arial, sans-serif", Font.CENTURY_GOTHIC = "'Century Gothic', CenturyGothic, AppleGothic, sans-serif", Font.GILL_SANS = "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif", Font.HELVETICA = "'Helvetica Neue', Helvetica, Arial, sans-serif", Font.TAHOMA = "Tahoma, Verdana, Segoe, sans-serif", Font.TREBUCHET_MS = "'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif", Font.VERDANA = "Verdana, Geneva, sans-serif", Font.BOOK_ANTIQUA = "'Book Antiqua', Palatino, 'Palatino Linotype', 'Palatino LT STD', Georgia, serif", Font.CAMBRIA = "Cambria, Georgia, serif", Font.GARAMOND = "Garamond, Baskerville, 'Baskerville Old Face', 'Hoefler Text', 'Times New Roman', serif", Font.GEORGRIA = "Georgia, Times, 'Times New Roman', serif", Font.LUCIDA_BRIGHT = "'Lucida Bright', Georgia, serif", Font.PALATINO = "Palatino, 'Palatino Linotype', 'Palatino LT STD', 'Book Antiqua', Georgia, serif", Font.BASKERVILLE = "Baskerville, 'Baskerville Old Face', 'Hoefler Text', Garamond, 'Times New Roman', serif", Font.TIMES_NEW_ROMAN = "TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif", Font.CONSOLAS = "Consolas, monaco, monospace", Font.COURIER_NEW = "'Courier New', Courier, 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace", Font.MONACO = "monaco, Consolas, 'Lucida Console', monospace", Font.COPPERPLATE = "Copperplate, 'Copperplate Gothic Light', fantasy", Font.PAPYRUS = "Papyrus, fantasy", Font.BRUSH_SCRIPT_MT = "'Brush Script MT', cursive";
+})(Font || (Font = {}));
 var AudioObj = (function () {
     function AudioObj(audio) {
         this.audio = audio;

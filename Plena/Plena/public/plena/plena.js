@@ -2,9 +2,7 @@ var gl;
 //all textures loaded cheack and only then call render/update stuff (option)
 //fullscreen option
 //loader at start option
-//full screen filters, write entire screen to texture and apply
-//texture load filters
-//bitmap to fontmap loader
+//different shader/projection for hud no view
 var Plena;
 (function (Plena) {
     var renderLp, updateLp;
@@ -57,16 +55,14 @@ var Plena;
             gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); \
             UV = (UVMatrix * vec4(vertexUV, 1, 1)).xy; \
         } ";
-    Plena.width;
-    Plena.height;
     var colorShader;
     var textureShader;
     var spriteManager;
-    var textureManager;
-    var audioManager;
     var camera;
     var projection;
     var projectionSave;
+    var canvasX;
+    var canvasY;
     function init(setupFunc, renderLoop, updateLoop, p1, p2, p3, p4, p5) {
         var width, height, x, y;
         var color;
@@ -76,7 +72,7 @@ var Plena;
             x = p1;
             y = p2;
             if (p5)
-                color = p5;
+                color = p5.vec();
             else
                 color = [1, 1, 1, 1];
         }
@@ -86,7 +82,7 @@ var Plena;
             x = window.innerWidth / 2 - width / 2;
             y = window.innerHeight / 2 - height / 2;
             if (p3)
-                color = p3;
+                color = p3.vec();
             else
                 color = [1, 1, 1, 1];
         }
@@ -96,27 +92,27 @@ var Plena;
             x = 0;
             y = 0;
             if (p1)
-                color = p1;
+                color = p1.vec();
             else
                 color = [1, 1, 1, 1];
         }
-        textureManager = new TextureManager();
-        audioManager = new AudioManager();
         canvas = document.createElement('canvas');
         canvas.setAttribute("width", "" + width);
         canvas.setAttribute("height", "" + height);
         canvas.setAttribute("style", "position:fixed; top:" + y + "px; left:" + x + "px");
         document.body.appendChild(canvas);
+        canvasX = x;
+        canvasY = y;
         Plena.width = width;
         Plena.height = height;
-        gl = canvas.getContext("experimental-webgl");
-        GLF.viewPort(0, 0, width, height);
-        GLF.alphaBlend();
-        GLF.clearColor(color);
-        GLF.clearBufferColor();
-        Keyboard.listenForKeys();
-        Mouse.listenForPosition();
-        Mouse.listenForClick();
+        gl = (canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
+        gl.viewport(0, 0, width, height);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.clearColor(color[0], color[1], color[2], color[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        Keyboard.enable();
+        Mouse.enable();
         colorShader = createShader(ShaderType.COLOR);
         textureShader = createShader(ShaderType.TEXTURE);
         changeProjection(0, width, height, 0);
@@ -130,42 +126,26 @@ var Plena;
         looper();
     }
     Plena.init = init;
-    function fontMap(font, safe, smooth, fontstring) {
-        if (safe === void 0) { safe = false; }
-        if (smooth === void 0) { smooth = false; }
-        return new FontMap(font, fontstring, smooth, safe);
+    function getWidth() {
+        return mapX(Plena.width);
     }
-    Plena.fontMap = fontMap;
-    function text(text, font, maxWidth, offset, smooth, background) {
-        if (maxWidth === void 0) { maxWidth = -1; }
-        if (offset === void 0) { offset = 0; }
-        return new Grix()
-            .fromTexture(Plena.textImg(text, font, maxWidth, offset, smooth, background))
-            .populate();
+    Plena.getWidth = getWidth;
+    function getHeight() {
+        return mapY(Plena.height);
     }
-    Plena.text = text;
-    function textImg(text, font, maxWidth, offset, smooth, background) {
-        if (maxWidth === void 0) { maxWidth = -1; }
-        if (offset === void 0) { offset = 0; }
-        return textureManager.loadWebFont(text, font, background, maxWidth, offset, smooth);
+    Plena.getHeight = getHeight;
+    function mapX(x) {
+        var l = projection[0];
+        var r = projection[1];
+        return l + (Math.abs(r - l) / Plena.width) * (x - canvasX);
     }
-    Plena.textImg = textImg;
-    function font(family, size) {
-        return new Font(size, family);
+    Plena.mapX = mapX;
+    function mapY(y) {
+        var t = projection[3];
+        var b = projection[2];
+        return t + (Math.abs(b - t) / Plena.height) * (y - canvasY);
     }
-    Plena.font = font;
-    function loadSpriteFile(src, safe, repeat, smooth, id) {
-        return textureManager.loadSprite(src, safe ? true : false, repeat, smooth);
-    }
-    Plena.loadSpriteFile = loadSpriteFile;
-    function loadImg(src, repeat, smooth, id) {
-        return textureManager.loadImg(src, repeat, smooth);
-    }
-    Plena.loadImg = loadImg;
-    function mkWritableImg(width, height, smooth, repeat) {
-        return new WritableTexture(width, height, smooth, repeat);
-    }
-    Plena.mkWritableImg = mkWritableImg;
+    Plena.mapY = mapY;
     function saveProjection() {
         projectionSave = projection;
     }
@@ -206,7 +186,7 @@ var Plena;
     }
     Plena.changeProjection = changeProjection;
     function looper() {
-        GLF.clearBufferColor();
+        gl.clear(gl.COLOR_BUFFER_BIT);
         var tick = Date.now();
         var delta = tick - lastTick;
         lastTick = tick;
@@ -287,51 +267,4 @@ var Plena;
         return Manager;
     })();
 })(Plena || (Plena = {}));
-var GLF;
-(function (GLF) {
-    function clearBufferColor() {
-        gl.clear(gl.COLOR_BUFFER_BIT);
-    }
-    GLF.clearBufferColor = clearBufferColor;
-    function clearColor(color) {
-        gl.clearColor(color[0], color[1], color[2], color[3]);
-    }
-    GLF.clearColor = clearColor;
-    function viewPort(x, y, width, height) {
-        gl.viewport(x, y, width, height);
-    }
-    GLF.viewPort = viewPort;
-    function alphaBlend() {
-        GLF.blend(true);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    }
-    GLF.alphaBlend = alphaBlend;
-    function blend(enable) {
-        if (enable)
-            gl.enable(gl.BLEND);
-        else
-            gl.disable(gl.BLEND);
-    }
-    GLF.blend = blend;
-})(GLF || (GLF = {}));
-var Color = (function () {
-    function Color() {
-    }
-    Color.toRGB = function (hex) {
-        var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-        hex = hex.replace(shorthandRegex, function (m, r, g, b) {
-            return r + r + g + g + b + b;
-        });
-        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
-    };
-    Color.componentToHex = function (c) {
-        var hex = c.toString(16);
-        return hex.length == 1 ? "0" + hex : hex;
-    };
-    Color.toHex = function (r, g, b) {
-        return "#" + Color.componentToHex(r) + Color.componentToHex(g) + Color.componentToHex(b);
-    };
-    return Color;
-})();
 //# sourceMappingURL=plena.js.map

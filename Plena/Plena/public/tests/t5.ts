@@ -23,7 +23,7 @@
     }
 
     export function render(delta: number) {
-        GLF.clearColor([color[0][0], color[0][1], color[0][2], 1])
+        gl.clearColor(color[0][0], color[0][1], color[0][2], 1)
 
         colors.setColorV3([1, 1, 1])
         colors.setPivotMove(0.5, 0.5);
@@ -68,4 +68,4 @@
     }
 }
 
-Plena.init(t5.setup, t5.render, t5.update, 3840, 2160, [1, 1, 1, 1]);
+Plena.init(t5.setup, t5.render, t5.update, 3840, 2160, new Color(255, 200, 175));

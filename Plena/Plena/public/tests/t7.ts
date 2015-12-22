@@ -13,7 +13,7 @@
             .line(0, 75)
             .setColorV3([.88, .89, .90])
             .populate();
-        clock = new WritableGrix(Plena.mkWritableImg(500, 500, true));
+        clock = new WritableGrix(Assets.mkWritableImg(500, 500, Assets.NORMAL));
     }
     export function update(delta: number) { }
     export function render(delta: number) {
@@ -49,4 +49,4 @@
     }
 }
 
-Plena.init(t7.setup, t7.render, t7.update, [.15, .15, .15, 1]);
+Plena.init(t7.setup, t7.render, t7.update, new Color(30, 30, 30));

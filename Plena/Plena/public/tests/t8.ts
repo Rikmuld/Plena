@@ -34,4 +34,4 @@
     }
 }
 
-Plena.init(t8.setup, t8.render, t8.update, 500, 500, [.15, .15, .15, 1]);
+Plena.init(t8.setup, t8.render, t8.update, 500, 500, new Color([.15, .15, .15, 1]));

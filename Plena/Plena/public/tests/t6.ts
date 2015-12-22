@@ -41,10 +41,10 @@ module PongCode {
 
             if (tt > 0) tt--;
 
-            if (Keyboard.isKeyDown(Keyboard.KEY_W)) x1 -= vb;
-            if (Keyboard.isKeyDown(Keyboard.KEY_S)) x1 += vb;
-            if (Keyboard.isKeyDown(Keyboard.KEY_UP)) x2 -= vb;
-            if (Keyboard.isKeyDown(Keyboard.KEY_DOWN)) x2 += vb;
+            if (Keyboard.isDown(Keyboard.KEY_W)) x1 -= vb;
+            if (Keyboard.isDown(Keyboard.KEY_S)) x1 += vb;
+            if (Keyboard.isDown(Keyboard.KEY_UP)) x2 -= vb;
+            if (Keyboard.isDown(Keyboard.KEY_DOWN)) x2 += vb;
 
             xB += v * Math.cos(direction);
             yB += v * Math.sin(direction);
@@ -92,7 +92,7 @@ module PongCode {
     }
 
     export function render(delta: number) {
-        GLF.clearColor([.15, .15, .15, 1])  
+        gl.clearColor(.15, .15, .15, 1)  
 
         if (score > 0) bat.setColorRGB(100 + score * 40, 160 - score * 20, 100);
         else bat.setColorRGB(100 + score * 40, 160 + score * 10, 100 - score * 50);

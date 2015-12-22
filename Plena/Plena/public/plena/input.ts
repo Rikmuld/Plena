@@ -1,213 +1,388 @@
-﻿class Mouse {
-    static MOUSE_LEFT = 0
-    static MOUSE_RIGHT = 1
-    static MOUSE_MIDDLE = 2
+﻿/**
+ * Mouse helper functions
+ */
+namespace Mouse {
+    type ButtonEventEx = (x: number, y: number, event: MouseEvent) => any
+    type ButtonEvent = (event: MouseEvent) => any
+    type EventMap = DeepTreeMap<number, ButtonEventEx>
 
-    private static mouseX: number;
-    private static mouseY: number;
-    private static buttons: boolean[] = new Array(10);
+    var pressCalls = new DeepTreeMap<number, ButtonEventEx>(NUMBER_COMPARE)
+    var releaseCalls = new DeepTreeMap<number, ButtonEventEx>(NUMBER_COMPARE)
+
+    /**
+     * Button code
+     */
+    export const
+        LEFT = 0,
+        RIGHT = 1,
+        MIDDLE = 2
+
+    var mouseX: number
+    var mouseY: number
+    var buttons: boolean[] = []
     
-    static listenForPosition() {
-        document.onmousemove = Mouse.mouseMoved;
+    /**
+     * Enable the default listners, is needed for a lot of other Mouse functionality
+     */
+    export function enable() {
+        document.body.onmouseup = mouseUp
+        document.body.onmousedown = mouseDown
+        document.onmousemove = mouseMoved
     }
 
-    static listenForClick() {
-        document.body.onmouseup = Mouse.mouseUp;
-        document.body.onmousedown = Mouse.mouseDown;
+    /**
+     * Register custom mouse moved listners
+     *
+     * @param mouseMoved move moved listner, will be triggerd when the mouse position has changed
+     */
+    export function customListenPos(mouseMoved: ButtonEvent) {
+        document.onmousemove = mouseMoved
     }
 
-    static listenForPositionCustom(mouseMoved) {
-        document.onmousemove = mouseMoved;
+    /**
+     * Register custom button listners
+     * 
+     * Note that you can also register them with addPressedEvent and addReleasedEvent,
+     * listners registerd by those will be triggerd by the default button listner. Specific keys 
+     * for those events can be specified.
+     *
+     * @param mouseDown mouse button down listner, will be triggered when a button is pressed (will be fired 
+     * repeadidly until released [in contrast to listners registerd with addPressedEvent])
+     * @param mouseUp mouse button up listner, will be triggerd when a button is released (firied once)
+     */
+    export function customListen(mouseDown: ButtonEvent, mouseUp: ButtonEvent) {
+        document.body.onmouseup = mouseUp
+        document.body.onmousedown = mouseDown
     }
 
-    private static mouseMoved(event) {
-        Mouse.mouseX = event.clientX;
-        Mouse.mouseY = event.clientY;
+    function mouseMoved(event: MouseEvent) {
+        mouseX = event.clientX
+        mouseY = event.clientY
     }
 
-    private static mouseUp(event) {
-        Mouse.buttons[event.button] = false;
+    function mouseUp(event: MouseEvent) {
+        let button = event.button;
+
+        setButton(button, false);
+        triggerButtons(releaseCalls, button, event)
     }
 
-    private static mouseDown(event) {
-        Mouse.buttons[event.button] = true;
+    function mouseDown(event: MouseEvent) {
+        let button = event.button;
+
+        if (!isDown(button)) {
+            triggerButtons(pressCalls, button, event)
+        }
+
+        setButton(button, true);
     }
 
-    static hide() {
-        document.body.style.cursor = "none";
+    function setButton(button:number, value:boolean){
+        buttons[button] = value;
     }
 
-    static show() {
+    /**
+     * Hide the mouse cursor
+     */
+    export function hide() {
+        document.body.style.cursor = "none"
+    }
+
+    /**
+     * Show the mouse cursor
+     */
+    export function show() {
         document.body.style.cursor = "auto"
     }
 
-    static getX() {
-        return Mouse.mouseX;
+    /**
+     * Get the current x position of the mouse
+     */
+    export function getX() {
+        return Plena.mapX(mouseX)
+    }
+    
+    /**
+     * Get the current y position of the mouse
+     */
+    export function getY() {
+        return Plena.mapY(mouseY)
     }
 
-    static getY() {
-        return Mouse.mouseY;
+    /**
+     * Get the current x position of the mouse in pixels (entire browser screen, not the canvas)
+     */
+    export function getScreenX() {
+        return mouseX
+    }
+    
+    /**
+     * Get the current y position of the mouse in pixels (entire browser screen, not the canvas)
+     */
+    export function getScreenY() {
+        return mouseY
     }
 
-    static isButtonDown(button: number) {
-        return Mouse.buttons[button];
+    /**
+     * Check if a button is currently pressed
+     * 
+     * @param button button code
+     */
+    export function isDown(button: number) {
+        return buttons[button]
+    }
+
+    function triggerButtons(collection: EventMap, button: number, event: MouseEvent) {
+        let mX = getX();
+        let mY = getY();
+
+        if (collection.contains(button)) {
+            let calls = collection.itterator(button)
+            for (let call of calls) call(mX, mY, event)
+        }
+
+        let calls2 = collection.itterator(-1)
+        for (let call of calls2) call(mX, mY, event)
+    }
+
+    /**
+     * Add an event for when a button is released
+     * 
+     * @param callback callback triggered when a button is released
+     * @param keys the buttons that will trigger the callback, no buttons means any button will be a trigger
+     */
+    export function addReleasedEvent(callback: ButtonEventEx, ...buttons: number[]) {
+        addEvent(releaseCalls, callback, buttons)
+    }
+
+    /**
+     * Add an event for when a button is pressed (will only fire once when the key is pressed)
+     * 
+     * @param callback callback triggered when a button is pressed
+     * @param keys the buttons that will trigger the callback, no buttons means any button will be a trigger
+     */
+    export function addPressedEvent(callback: ButtonEventEx, ...buttons: number[]) {
+        addEvent(pressCalls, callback, buttons)
+    }
+
+    function addEvent(collection: EventMap, callback: ButtonEventEx, buttons: number[]) {
+        if (buttons.length == 0) collection.put(-1, callback)
+        else for (var button of buttons) collection.put(button, callback)
     }
 }
- //key codes with keypressed
-class Keyboard {
-    private static currentlyPressedKeys = new Array(128);
-    private static keyPressedCalls = new DeepTreeMap<number, (event) => void>(NUMBER_COMPARE);
-    private static keyReleasedCalls = new DeepTreeMap<number, (event) => void>(NUMBER_COMPARE);
-    private static keysEnabled = true;
 
-    static KEY_BACKSPACE = 8;
-    static KEY_TAB = 9;
-    static KEY_ENTER = 13;
-    static KEY_SHIFT = 16;
-    static KEY_CTRL = 17;
-    static KEY_ALT = 18;
-    static KEY_BREAK = 19;
-    static KEY_CAPS_LOCK = 20;
-    static KEY_ESCAPE = 27;
-    static KEY_SPACE = 32;
-    static KEY_PAGE_UP = 33;
-    static KEY_PAGE_DOWN = 34;
-    static KEY_END = 35;
-    static KEY_HOME = 36;
-    static KEY_LEFT = 37
-    static KEY_UP = 38
-    static KEY_RIGHT = 39
-    static KEY_DOWN = 40
-    static KEY_INSERT = 45;
-    static KEY_DELETE = 46;
-    static KEY_0 = 48;
-    static KEY_1 = 49;
-    static KEY_2 = 50;
-    static KEY_3 = 51;
-    static KEY_4 = 52;
-    static KEY_5 = 53;
-    static KEY_6 = 54;
-    static KEY_7 = 55;
-    static KEY_8 = 56;
-    static KEY_9 = 57;
-    static KEY_A = 65;
-    static KEY_B = 66;
-    static KEY_C = 67;
-    static KEY_D = 68;
-    static KEY_E = 69;
-    static KEY_F = 70;
-    static KEY_G = 71;
-    static KEY_H = 72;
-    static KEY_I = 73;
-    static KEY_J = 74;
-    static KEY_K = 75;
-    static KEY_L = 76;
-    static KEY_M = 77;
-    static KEY_N = 78;
-    static KEY_O = 79;
-    static KEY_P = 80;
-    static KEY_Q = 81;
-    static KEY_R = 82;
-    static KEY_S = 83;
-    static KEY_T = 84;
-    static KEY_U = 85;
-    static KEY_V = 86;
-    static KEY_W = 87;
-    static KEY_X = 88;
-    static KEY_Y = 89;
-    static KEY_Z = 90;
-    static KEY_WINDOWS_LEFT = 91;
-    static KEY_WINDOWS_RIGHT = 92;
-    static KEY_SELECT = 93;
-    static KEY_NUMPAD_0 = 96;
-    static KEY_NUMPAD_1 = 97;
-    static KEY_NUMPAD_2 = 98;
-    static KEY_NUMPAD_3 = 99;
-    static KEY_NUMPAD_4 = 100;
-    static KEY_NUMPAD_5 = 101;
-    static KEY_NUMPAD_6 = 102;
-    static KEY_NUMPAD_7 = 103;
-    static KEY_NUMPAD_8 = 104;
-    static KEY_NUMPAD_9 = 105;
-    static KEY_MULTIPLY = 106;
-    static KEY_ADD = 107;
-    static KEY_SUBSTRACT = 108;
-    static KEY_POINT = 109;
-    static KEY_DECIMAL_POINT = 110;
-    static DEVIDE = 111;
-    static KEY_F1 = 112
-    static KEY_F2 = 113
-    static KEY_F3 = 114
-    static KEY_F4 = 115
-    static KEY_F5 = 116
-    static KEY_F6 = 117
-    static KEY_F7 = 118
-    static KEY_F8 = 119
-    static KEY_F9 = 120
-    static KEY_F10 = 121
-    static KEY_F11 = 122
-    static KEY_F12 = 123
-    static KEY_NUM_LOCK = 144
-    static KEY_SCROLL_LOCK = 145
-    static KEY_SEMI_COLON = 186
-    static KEY_EQUAL_SIGN = 187
-    static KEY_COMMA = 188
-    static KEY_DASH = 189
-    static KEY_PERIOD = 190
-    static KEY_SLASH_FORWARD = 191
-    static KEY_GRAVE_ACCENT = 192
-    static KEY_BRACKET_OPEN = 219
-    static KEY_SLASH_BACK = 220
-    static KEY_BRACKET_CLOSE = 221
-    static KEY_QUOTE_SINGLE = 222
+/**
+ * Keyboard helper functions
+ */
+namespace Keyboard {
+    type KeyEvent = (event: KeyboardEvent) => any
+    type EventMap = DeepTreeMap<number, KeyEvent>
 
-    static listenForKeysCustom(keyDown, keyUp) {
-        document.onkeydown = keyDown;
-        document.onkeyup = keyUp;
+    var keys = []
+    var pressCalls = new DeepTreeMap<number, KeyEvent>(NUMBER_COMPARE)
+    var releaseCalls = new DeepTreeMap<number, KeyEvent>(NUMBER_COMPARE)
+    var browserControl = true
+
+    /**
+     * ASCII key code
+     */
+    export const
+        KEY_BACKSPACE = 8,
+        KEY_TAB = 9,
+        KEY_ENTER = 13,
+        KEY_SHIFT = 16,
+        KEY_CTRL = 17,
+        KEY_ALT = 18,
+        KEY_BREAK = 19,
+        KEY_CAPS_LOCK = 20,
+        KEY_ESCAPE = 27,
+        KEY_SPACE = 32,
+        KEY_PAGE_UP = 33,
+        KEY_PAGE_DOWN = 34,
+        KEY_END = 35,
+        KEY_HOME = 36,
+        KEY_LEFT = 37,
+        KEY_UP = 38,
+        KEY_RIGHT = 39,
+        KEY_DOWN = 40,
+        KEY_INSERT = 45,
+        KEY_DELETE = 46,
+        KEY_0 = 48,
+        KEY_1 = 49,
+        KEY_2 = 50,
+        KEY_3 = 51,
+        KEY_4 = 52,
+        KEY_5 = 53,
+        KEY_6 = 54,
+        KEY_7 = 55,
+        KEY_8 = 56,
+        KEY_9 = 57,
+        KEY_A = 65,
+        KEY_B = 66,
+        KEY_C = 67,
+        KEY_D = 68,
+        KEY_E = 69,
+        KEY_F = 70,
+        KEY_G = 71,
+        KEY_H = 72,
+        KEY_I = 73,
+        KEY_J = 74,
+        KEY_K = 75,
+        KEY_L = 76,
+        KEY_M = 77,
+        KEY_N = 78,
+        KEY_O = 79,
+        KEY_P = 80,
+        KEY_Q = 81,
+        KEY_R = 82,
+        KEY_S = 83,
+        KEY_T = 84,
+        KEY_U = 85,
+        KEY_V = 86,
+        KEY_W = 87,
+        KEY_X = 88,
+        KEY_Y = 89,
+        KEY_Z = 90,
+        KEY_WINDOWS_LEFT = 91,
+        KEY_WINDOWS_RIGHT = 92,
+        KEY_SELECT = 93,
+        KEY_NUMPAD_0 = 96,
+        KEY_NUMPAD_1 = 97,
+        KEY_NUMPAD_2 = 98,
+        KEY_NUMPAD_3 = 99,
+        KEY_NUMPAD_4 = 100,
+        KEY_NUMPAD_5 = 101,
+        KEY_NUMPAD_6 = 102,
+        KEY_NUMPAD_7 = 103,
+        KEY_NUMPAD_8 = 104,
+        KEY_NUMPAD_9 = 105,
+        KEY_MULTIPLY = 106,
+        KEY_ADD = 107,
+        KEY_SUBSTRACT = 108,
+        KEY_POINT = 109,
+        KEY_DECIMAL_POINT = 110,
+        DEVIDE = 111,
+        KEY_F1 = 112,
+        KEY_F2 = 113,
+        KEY_F3 = 114,
+        KEY_F4 = 115,
+        KEY_F5 = 116,
+        KEY_F6 = 117,
+        KEY_F7 = 118,
+        KEY_F8 = 119,
+        KEY_F9 = 120,
+        KEY_F10 = 121,
+        KEY_F11 = 122,
+        KEY_F12 = 123,
+        KEY_NUM_LOCK = 144,
+        KEY_SCROLL_LOCK = 145,
+        KEY_SEMI_COLON = 186,
+        KEY_EQUAL_SIGN = 187,
+        KEY_COMMA = 188,
+        KEY_DASH = 189,
+        KEY_PERIOD = 190,
+        KEY_SLASH_FORWARD = 191,
+        KEY_GRAVE_ACCENT = 192,
+        KEY_BRACKET_OPEN = 219,
+        KEY_SLASH_BACK = 220,
+        KEY_BRACKET_CLOSE = 221,
+        KEY_QUOTE_SINGLE = 222
+    
+    /**
+     * Register custom key listners
+     * 
+     * Note that you can also register them with addPressedEvent and addReleasedEvent,
+     * listners registerd by those will be triggerd by the default key listner. Specific keys 
+     * for those events can be specified.
+     *
+     * @param keyDown key down listner, will be triggered when a key is pressed (will be fired 
+     * repeadidly until released [in contract to listners registerd with addPressedEvent])
+     * @param keyUp key up listner, will be triggerd when a key is released (firied once)
+     */
+    export function customListen(keyDown: KeyEvent, keyUp: KeyEvent) {
+        document.onkeydown = keyDown
+        document.onkeyup = keyUp
     }
 
-    static allowBrowserKeys(allow:boolean) {
-        this.keysEnabled = allow;
+    /**
+     * Set availability of all default key controlls in the browser (e.g. backspace trigger back)
+     * 
+     * @param allow whather or not the browser key controlls will be triggered
+     */
+    export function browserControll(allow:boolean) {
+        browserControl = allow
     }
 
-    static listenForKeys() {
-        document.onkeydown = Keyboard.keyDown;
-        document.onkeyup = Keyboard.keyUp;
+    /**
+     * Enable the default key listners, is needed for use of every other Keyboard functionality
+     */
+    export function enable() {
+        customListen(keyDown, keyUp)
     }
 
-    private static keyDown(event) {
-        if (Keyboard.keyPressedCalls.contains(event.keyCode)) {
-            var calls = Keyboard.keyPressedCalls.itterator(event.keyCode);
-            for (var i = 0; i < calls.length; i++)if (!Keyboard.currentlyPressedKeys[event.keyCode]) calls[i](event);
+    function keyDown(event: KeyboardEvent):boolean {
+        let key = event.keyCode
+
+        if (!isDown(key)) {
+            triggerKeys(pressCalls, key, event)
         }
-        Keyboard.currentlyPressedKeys[event.keyCode] = true;
-        var calls = Keyboard.keyPressedCalls.itterator(-1);
-        for (var i = 0; i < calls.length; i++)calls[i](event);
 
-        return Keyboard.keysEnabled;
+        setKey(key, true)
+        return browserControl
     }
 
-    private static keyUp(event) {
-        Keyboard.currentlyPressedKeys[event.keyCode] = false;
-        if (Keyboard.keyReleasedCalls.contains(event.keyCode)) {
-            var calls = Keyboard.keyReleasedCalls.itterator(event.keyCode);
-            for (var i = 0; i < calls.length; i++)calls[i](event);
+    function keyUp(event: KeyboardEvent) {
+        let key = event.keyCode
+
+        setKey(key, false)
+        triggerKeys(releaseCalls, key, event)
+    }
+
+    function triggerKeys(collection:EventMap, key:number, event: KeyboardEvent) {
+        if (collection.contains(key)) {
+            let calls = collection.itterator(key)
+            for (let call of calls) call(event)
         }
-        var calls = Keyboard.keyReleasedCalls.itterator(-1);
-        for (var i = 0; i < calls.length; i++)calls[i](event);
+
+        let calls2 = collection.itterator(-1)
+        for (let call of calls2) call(event)
     }
 
-    static isKeyDown(key:number) {
-        return Keyboard.currentlyPressedKeys[key];
+    /**
+     * Check if a key is currently pressed
+     * 
+     * @param key ASCII key code of the key
+     */
+    export function isDown(key:number) {
+        return keys[key]
     }
 
-    static addReleasedEvent(callback, ...key: number[]) {
-        for (var i = 0; i < key.length; i++)Keyboard.keyReleasedCalls.put(key[i], callback);
-        if (key.length == 0) Keyboard.keyReleasedCalls.put(-1, callback);
+    function setKey(key: number, value: boolean) {
+        keys[key] = value
     }
 
-    static addPressedEvent(callback, ...key: number[]) {
-        for (var i = 0; i < key.length; i++)Keyboard.keyPressedCalls.put(key[i], callback);
-        if (key.length == 0) Keyboard.keyPressedCalls.put(-1, callback);
+    /**
+     * Add an event for when a key is released
+     * 
+     * @param callback callback triggered when a key is released
+     * @param keys the keys that will trigger the callback, no keys means any key will be a trigger
+     */
+    export function addReleasedEvent(callback: KeyEvent, ...keys: number[]) {
+        addEvent(releaseCalls, callback, keys)
+    }
+
+    /**
+     * Add an event for when a key is pressed (will only fire once when the key is pressed)
+     * 
+     * @param callback callback triggered when a key is pressed
+     * @param keys the keys that will trigger the callback, no keys means any key will be a trigger
+     */
+    export function addPressedEvent(callback: KeyEvent, ...keys: number[]) {
+        addEvent(pressCalls, callback, keys)
+    }
+
+    function addEvent(collection: EventMap, callback: KeyEvent, keys: number[]) {
+        if (keys.length == 0) collection.put(-1, callback)
+        else for (var key of keys) collection.put(key, callback)
     }
 }

@@ -11,8 +11,7 @@
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
-    __.prototype = b.prototype;
-    d.prototype = new __();
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 var Grix = (function () {
     function Grix(customShader) {
@@ -160,6 +159,11 @@ var Grix = (function () {
             this.defaultColor = color;
         return this;
     };
+    Grix.prototype.fromCanvas = function (ctx, options) {
+        if (options === void 0) { options = Assets.PIXEL_NORMAL; }
+        this.fromTexture(Assets.getTexture(ctx, options));
+        return this;
+    };
     Grix.prototype.fromTexture = function (texture) {
         this.texture = texture;
         texture.onLoaded(this.textureLoaded(this));
@@ -194,6 +198,7 @@ var Grix = (function () {
     Grix.prototype.mkRect = function (ths) {
         return function (texture) {
             ths.textureRect(texture.getWidth(), texture.getHeight());
+            ths.populate();
         };
     };
     Grix.prototype.mkRectSP = function (ths, sprite) {
@@ -418,7 +423,7 @@ var WritableGrix = (function (_super) {
 })(Grix);
 var TextGrix = (function (_super) {
     __extends(TextGrix, _super);
-    //some ort of offset x for fomnts that are close to each other
+    //align in tecxt grid, espcially for goood move transforms
     function TextGrix(fontMap, customShader) {
         _super.call(this, customShader);
         this.yOffset = 0;
@@ -429,7 +434,7 @@ var TextGrix = (function (_super) {
         this.fontMap = fontMap;
     }
     TextGrix.prototype.fontsize = function (px) {
-        var size = px / this.fontMap.getFont().getFontSize();
+        var size = px / this.fontMap.defaultSize();
         this.scaleTo(size, size);
     };
     TextGrix.prototype.offsetY = function (offset) {
@@ -520,12 +525,19 @@ var TextGrix = (function (_super) {
         this.scaleTo(dX, dY);
         return widthTotal;
     };
+    TextGrix.text = function (text, font, options, maxWidth, offset, background) {
+        if (options === void 0) { options = Assets.LETTERS; }
+        if (maxWidth === void 0) { maxWidth = -1; }
+        if (offset === void 0) { offset = 0; }
+        return new Grix()
+            .fromTexture(Assets.mkTextImg(text, font, options, maxWidth, offset, background))
+            .populate();
+    };
     return TextGrix;
 })(Grix);
 var Shader = (function () {
     function Shader(id, shaderVars, p2, p3) {
-        this.programId = 0;
-        this.shadVarData = Array(0);
+        this.shadVarData = [];
         this.id = id;
         var fragmentShader, vertexShader;
         if (typeof p3 == 'undefined') {
@@ -536,19 +548,19 @@ var Shader = (function () {
             fragmentShader = this.createShader(p3, gl.FRAGMENT_SHADER);
             vertexShader = this.createShader(p2, gl.VERTEX_SHADER);
         }
-        this.programId = gl.createProgram();
-        gl.attachShader(this.programId, vertexShader);
-        gl.attachShader(this.programId, fragmentShader);
-        gl.linkProgram(this.programId);
-        if (!gl.getProgramParameter(this.programId, gl.LINK_STATUS)) {
+        this.program = gl.createProgram();
+        gl.attachShader(this.program, vertexShader);
+        gl.attachShader(this.program, fragmentShader);
+        gl.linkProgram(this.program);
+        if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
             alert("Unable to initialize the shader program.");
         }
         this.bind();
-        this.vertices = gl.getAttribLocation(this.programId, "vertexPos");
-        this.UVCoords = gl.getAttribLocation(this.programId, "vertexUV");
+        this.vertices = gl.getAttribLocation(this.program, "vertexPos");
+        this.UVCoords = gl.getAttribLocation(this.program, "vertexUV");
         for (var key in shaderVars) {
             if (shaderVars.hasOwnProperty(key)) {
-                this.shadVarData[shaderVars[key]] = gl.getUniformLocation(this.programId, key);
+                this.shadVarData[shaderVars[key]] = gl.getUniformLocation(this.program, key);
             }
         }
         this.matrix = new MatrixHandler(this);
@@ -566,16 +578,16 @@ var Shader = (function () {
         return this.matrix;
     };
     Shader.prototype.bind = function () {
-        gl.useProgram(this.programId);
+        gl.useProgram(this.program);
     };
     Shader.prototype.setMatrix4 = function (shadVar, matrix) {
-        gl.uniformMatrix4fv(this.shadVarData[shadVar], false, matrix);
+        gl.uniformMatrix4fv(this.shadVarData[shadVar], false, new Float32Array(matrix));
     };
     Shader.prototype.setInt = function (shadVar, num) {
         gl.uniform1i(this.shadVarData[shadVar], num);
     };
     Shader.prototype.setFloat = function (shadVar, num) {
-        gl.uniformf(this.shadVarData[shadVar], num);
+        gl.uniform1f(this.shadVarData[shadVar], num);
     };
     Shader.prototype.setVec2 = function (shadVar, vec2) {
         gl.uniform2f(this.shadVarData[shadVar], vec2[0], vec2[1]);
@@ -651,10 +663,10 @@ var MatrixHandler = (function () {
 })();
 var Render = (function () {
     function Render() {
-        this.attrpBuffs = new Array(0);
-        this.attrpIds = new Array(0);
-        this.elementBuff = new Array(0);
-        this.count = new Array(0);
+        this.attrpBuffs = [];
+        this.attrpIds = [];
+        this.elementBuff = [];
+        this.count = [];
     }
     Render.prototype.addAttrips = function (attripBuff, id) {
         this.attrpBuffs.push(attripBuff);
@@ -692,7 +704,7 @@ var Render = (function () {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.elementBuff[id]);
     };
     Render.prototype.draw = function (typ, count) {
-        gl.drawArray(typ, 0, count);
+        gl.drawArrays(typ, 0, count);
     };
     Render.prototype.drawElements = function (id, typ) {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.elementBuff[id]);

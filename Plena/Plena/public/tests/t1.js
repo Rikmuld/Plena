@@ -5,7 +5,7 @@ var t1;
     var count = 1;
     function setup() {
         cat = new Grix()
-            .fromTexture(Plena.loadImg("cat.png"))
+            .fromTexture(Assets.loadImg("cat.png", Assets.PIXEL_NORMAL))
             .populate();
         Keyboard.addPressedEvent(increseCount, Keyboard.KEY_SPACE);
     }
@@ -15,7 +15,7 @@ var t1;
     }
     t1.update = update;
     function render(delta) {
-        var multiple = (Keyboard.isKeyDown(Keyboard.KEY_D)) ? 2 : 1;
+        var multiple = (Keyboard.isDown(Keyboard.KEY_D)) ? 2 : 1;
         cat.scaleToSize(10, 10);
         cat.setPivotMove(0.5, 0);
         cat.setPivotRot(250, 250, false);
@@ -27,12 +27,11 @@ var t1;
             cat.rotate((Math.PI * 2) / count);
             cat.move(0, 250 / 1000);
         }
-        console.log(Date.now() - time);
     }
     t1.render = render;
     function increseCount() {
         count += 3 * Math.floor(count / 25) + 1;
     }
 })(t1 || (t1 = {}));
-Plena.init(t1.setup, t1.render, t1.update, 500, 500, [0.4, 0.8, 0.6, 1]);
+Plena.init(t1.setup, t1.render, t1.update, 500, 500, new Color(255, 200, 175));
 //# sourceMappingURL=t1.js.map

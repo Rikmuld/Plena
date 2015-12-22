@@ -35,7 +35,9 @@
   </PropertyGroup>
   <ItemGroup>
     <TypeScriptCompile Include="public\plena\assets.ts" />
+    <TypeScriptCompile Include="public\plena\color.ts" />
     <TypeScriptCompile Include="public\plena\data.ts" />
+    <TypeScriptCompile Include="public\plena\grix.ts" />
     <TypeScriptCompile Include="public\plena\graphics.ts" />
     <TypeScriptCompile Include="public\plena\input.ts" />
     <TypeScriptCompile Include="public\plena\math.ts" />

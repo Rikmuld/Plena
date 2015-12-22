@@ -157,6 +157,10 @@ class Grix {
         else this.defaultColor = color;
         return this;
     }
+    fromCanvas(ctx: CanvasRenderingContext2D, options: TextureOptions = Assets.PIXEL_NORMAL): Grix {
+        this.fromTexture(Assets.getTexture(ctx, options))
+        return this;
+    }
     fromTexture(texture: Img):Grix {
         this.texture = texture;
 
@@ -194,6 +198,7 @@ class Grix {
     private mkRect(ths: Grix): (texture: Img) => void {
         return function (texture: Img) {
             ths.textureRect(texture.getWidth(), texture.getHeight())
+            ths.populate();
         }
     }
     private mkRectSP(ths: Grix, sprite: Sprite): (texture: Img) => void {
@@ -402,9 +407,9 @@ interface GrixC {
 }
 
 class WritableGrix extends Grix {
-    private writable: WritableTexture;
+    private writable: WritableImg;
 
-    constructor(tex: WritableTexture, customShader?: Shader) {
+    constructor(tex: WritableImg, customShader?: Shader) {
         super(customShader);
         this.writable = tex;
         this.fromTexture(tex.getImg())
@@ -425,7 +430,7 @@ class TextGrix extends Grix {
     private yOffset: number = 0;
     private xOffset: number = 0;
 
-    //some ort of offset x for fomnts that are close to each other
+    //align in tecxt grid, espcially for goood move transforms
     constructor(fontMap: FontMap, customShader?: Shader) {
         super(customShader);
         this.addSprite(fontMap.getMap());
@@ -436,7 +441,7 @@ class TextGrix extends Grix {
     }
 
     fontsize(px: number) {
-        var size = px / this.fontMap.getFont().getFontSize();
+        var size = px / this.fontMap.defaultSize();
         this.scaleTo(size, size);
     }
 
@@ -535,6 +540,12 @@ class TextGrix extends Grix {
         this.scaleTo(dX, dY);
         return widthTotal;
     }
+
+    static text(text: string, font: Font, options: TextureOptions = Assets.LETTERS, maxWidth: number = -1, offset: number = 0, background?: Color): Grix {
+        return new Grix()
+            .fromTexture(Assets.mkTextImg(text, font, options, maxWidth, offset, background))
+            .populate();
+    }
 }
 
 class Shader {
@@ -544,12 +555,12 @@ class Shader {
     static UV_MATRIX: number = 103;
     static COLOR: number = 104;
 
-    private programId: number = 0;
+    private program: WebGLProgram;
 
     private vertices: number;
     private UVCoords: number;
 
-    private shadVarData: number[] = Array(0);
+    private shadVarData: WebGLUniformLocation[] = [];
 
     private matrix: MatrixHandler;
     private id;
@@ -568,22 +579,22 @@ class Shader {
             vertexShader = this.createShader(p2, gl.VERTEX_SHADER);
         }
 
-        this.programId = gl.createProgram();
-        gl.attachShader(this.programId, vertexShader);
-        gl.attachShader(this.programId, fragmentShader);
-        gl.linkProgram(this.programId);
+        this.program = gl.createProgram();
+        gl.attachShader(this.program, vertexShader);
+        gl.attachShader(this.program, fragmentShader);
+        gl.linkProgram(this.program);
 
-        if (!gl.getProgramParameter(this.programId, gl.LINK_STATUS)) {
+        if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
             alert("Unable to initialize the shader program.");
         }
         this.bind();
 
-        this.vertices = gl.getAttribLocation(this.programId, "vertexPos");
-        this.UVCoords = gl.getAttribLocation(this.programId, "vertexUV");
+        this.vertices = gl.getAttribLocation(this.program, "vertexPos");
+        this.UVCoords = gl.getAttribLocation(this.program, "vertexUV");
 
         for (var key in shaderVars) {
             if (shaderVars.hasOwnProperty(key)) {
-                this.shadVarData[shaderVars[key]] = gl.getUniformLocation(this.programId, key);
+                this.shadVarData[shaderVars[key]] = gl.getUniformLocation(this.program, key);
             }
         }
 
@@ -607,19 +618,19 @@ class Shader {
     }
 
     bind() {
-        gl.useProgram(this.programId);
+        gl.useProgram(this.program);
     }
 
     setMatrix4(shadVar: number, matrix: number[]) {
-        gl.uniformMatrix4fv(this.shadVarData[shadVar], false, matrix);
+        gl.uniformMatrix4fv(this.shadVarData[shadVar], false, new Float32Array(matrix));
     }
 
     setInt(shadVar: number, num: number) {
         gl.uniform1i(this.shadVarData[shadVar], num);
     }
 
-    setFloat(shadVar: number, num: number[]) {
-        gl.uniformf(this.shadVarData[shadVar], num);
+    setFloat(shadVar: number, num: number) {
+        gl.uniform1f(this.shadVarData[shadVar], num);
     }
 
     setVec2(shadVar: number, vec2: number[]) {
@@ -705,15 +716,15 @@ class MatrixHandler {
 }
 
 class Render {
-    private attrpBuffs: WebGLBuffer[] = new Array(0);
-    private attrpIds: WebGLBuffer[] = new Array(0);
+    private attrpBuffs: WebGLBuffer[] = [];
+    private attrpIds: number[] = [];
 
-    private elementBuff: WebGLBuffer[] = new Array(0);
-    private count = new Array(0);
+    private elementBuff: WebGLBuffer[] = [];
+    private count = [];
 
     private shader: Shader;
 
-    addAttrips(attripBuff: WebGLBuffer, id) {
+    addAttrips(attripBuff: WebGLBuffer, id:number) {
         this.attrpBuffs.push(attripBuff);
         this.attrpIds.push(id);
     }
@@ -752,7 +763,7 @@ class Render {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.elementBuff[id]);
     }
     draw(typ, count: number) {
-        gl.drawArray(typ, 0, count);
+        gl.drawArrays(typ, 0, count);
     }
     drawElements(id: number, typ) {
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.elementBuff[id]);

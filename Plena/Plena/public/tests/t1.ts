@@ -5,7 +5,7 @@
 
     export function setup() {
         cat = new Grix()
-            .fromTexture(Plena.loadImg("cat.png"))
+            .fromTexture(Assets.loadImg("cat.png", Assets.PIXEL_NORMAL))
             .populate()
             
         Keyboard.addPressedEvent(increseCount, Keyboard.KEY_SPACE);
@@ -16,7 +16,7 @@
     }
 
     export function render(delta: number) {
-        var multiple = (Keyboard.isKeyDown(Keyboard.KEY_D)) ? 2 : 1;
+        var multiple = (Keyboard.isDown(Keyboard.KEY_D)) ? 2 : 1;
 
         cat.scaleToSize(10, 10);
         cat.setPivotMove(0.5, 0);
@@ -30,7 +30,6 @@
             cat.rotate((Math.PI * 2) / count);
             cat.move(0, 250 / 1000);
         }
-        console.log(Date.now()-time)
     }
 
     function increseCount() {
@@ -38,4 +37,4 @@
     }
 }
 
-Plena.init(t1.setup, t1.render, t1.update, 500, 500, [0.4, 0.8, 0.6, 1]);
+Plena.init(t1.setup, t1.render, t1.update, 500, 500, new Color(255, 200, 175));

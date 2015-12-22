@@ -15,7 +15,7 @@
     var height: number;
 
     export function setup() {
-        var catSprite = Plena.loadSpriteFile("cats.png", true);
+        var catSprite = Assets.loadSprite("cats.png", Assets.PIXEL_TILE_SHEET);
         for (var i = 0; i < 4; i++)loadCat(i, catSprite)
 
         cat = new Grix().animationFromSprite(catSprite).populate()
@@ -74,4 +74,4 @@
     function swich() { currCat = (currCat + 1)%4 }
 }
 
-Plena.init(t4.setup, t4.render, t4.update, 500, 500, [0.4, 0.8, 0.6, 1]);
+Plena.init(t4.setup, t4.render, t4.update, 500, 500, new Color(255, 200, 175));

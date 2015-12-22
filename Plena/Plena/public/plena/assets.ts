@@ -1,54 +1,233 @@
-﻿//make no safe default and save in sepearte thing if wanted option
-class TextureManager {
-    loadSprite(src: string, safe:boolean, repeat?: boolean, smooth?: boolean):Sprite {
-        return new Sprite(this.initTexture(src, repeat ? true : false, smooth ? true : false), safe);
+﻿type TextureOptions = Assets.TextureOptions;
+
+/**
+ * Helper functions for loading and creating assets
+ */
+namespace Assets {
+    /**
+     * Pre set TextureOption handy for non pixel perfect textures (smooth = true, safe = false, repeat = false)
+     */
+    export const NORMAL = options(true, false, false);
+    /**
+     * Pre set TextureOption handy for pixel perfect textures (smooth = false, safe = false, repeat = false)
+     */
+    export const PIXEL_NORMAL = options(false, false, false);
+    /**
+     * Pre set TextureOption (same as TILE_SHEET) handy for rendering letters (smooth = true, safe = true, repeat = false)
+     */
+    export const LETTERS = options(true, true, false);
+    /**
+     * Pre set TextureOption (same as LETTERS) handy for non pixel perfect tile sheets (smooth = true, safe = true, repeat = false)
+     */
+    export const TILE_SHEET = options(true, true, false);
+    /**
+     * Per set TextureOption handy for pixel perfect tile sheets (smooth = false, safe = true, repeat = false)
+     */
+    export const PIXEL_TILE_SHEET = options(false, true, false);
+    /**
+     * Per set TextureOption handy for endless non pixel perfect backgrounds (smooth = true, safe = false, repeat = true)
+     */
+    export const BACKGROUND = options(true, false, true);
+    /**
+     * Per set TextureOption handy for endless pixel perfect backgrounds (smooth = false, safe = false, repeat = true)
+     */
+    export const PIXEL_BACKGROUND = options(false, false, true);
+
+    /**
+     * Options for loading/creation of textures
+     *
+     * Smooth, when true a linear filter will be used, false for a nearest filter
+     * Safe, set true for tilesheets, will remove possible artifacts by slightly decresing uv coord bounds
+     * Repeat, whether or not a texture should repeat itself when uv coords are out of the textures bounds
+     */
+    export interface TextureOptions {
+        smooth?: boolean;
+        safe?: boolean;
+        repeat?: boolean;
     }
 
-    loadImg(src: string, repeat?: boolean, smooth?: boolean):Img {
-        return this.initTexture(src, repeat ? true : false, smooth ? true : false);
+    /**
+     * Create a new TextureOptions
+     *
+     * @param smooth when true a linear filter will be used, false for a nearest filter (defaults to false)
+     * @param safe will remove possible artifacts by slightly decresing uv coord bounds, use for tilesheets (defaults to false)
+     * @param repeat whether or not a texture should repeat itself when uv coords are out of the textures bounds (defaults to false)
+     */
+    export function options(smooth: boolean = false, safe: boolean = false, repeat: boolean = false): TextureOptions {
+        let options: TextureOptions = {};
+
+        options.smooth = smooth;
+        options.safe = safe;
+        options.repeat = repeat;
+
+        return options;
     }
 
-    loadWebFont(text: string, font: Font, background?: string, maxWidth: number = -1, offset: number = 0, smooth:boolean = false):Img {
-        var texture = gl.createTexture();
-        var retImg = new Img(texture);
+    /**
+     * Load an img file
+     *
+     * @param src filepath
+     * @param options texture options used when loading img
+     */
+    export function loadImg(src: string, options: TextureOptions = PIXEL_NORMAL): Img {
+        let texture = gl.createTexture();
+        let retImg = new Img(texture);
+        let img = new Image();
 
-        var c = document.createElement('canvas');
-        var ctx = c.getContext('2d');
+        img.onload = () => {
+            if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
+                retImg.imgLoaded(img.width, img.height, 0, 0, img.width, img.height, false);
+                dataToTexture(img, texture, options);
+            } else {
+                let ctx = mkCanvas(Math.pow(2, Math.ceil(MMath.logN(2, img.width))), Math.pow(2, Math.ceil(MMath.logN(2, img.height))));
+                let c = ctx.canvas;
+
+                ctx.drawImage(img, 0, 0);
+                retImg.imgLoaded(c.width, c.height, 0, 0, img.width, img.height, false);
+                dataToTexture(ctx, texture, options);
+            }
+        };
+        img.src = src;
+
+        return retImg;
+    }
+
+    
+    /**
+     * Load a sprite sheet. Same as loadImg, but wraps the Img in a Sprite
+     *
+     * @param src filepath
+     * @param options texture options used when loading img
+     */
+    export function loadSprite(src: string, options: TextureOptions = PIXEL_NORMAL): Sprite {
+        return new Sprite(loadImg(src, options), options.safe);
+    }
+
+    /**
+     * Load an audio file
+     *
+     * @param src filepath
+     */
+    export function loadAudio(src: string): AudioObj {
+        let container = document.createElement("audio");
+        let source = document.createElement("source");
+        source.setAttribute('type', "audio/ogg");
+        source.setAttribute('src', src);
+        container.appendChild(source);
+        document.body.appendChild(container);
+
+        return new AudioObj(container);
+    }
+
+    /**
+     * Creates a new canvas of specific size and returns its 2d context, later you can use getTexure to create a texture from the context
+     *
+     * @param with the with of the canvas
+     * @param height the height of the canvas
+     */
+    export function mkCanvas(width: number, height: number): CanvasRenderingContext2D {
+        let canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        return canvas.getContext('2d');
+    }
+
+    /**
+     * Creates a FontMap which can be used in a TextGrix for drawing mutable text
+     *
+     * @param font the Font to create a FontMap from
+     * @param options texture options used when creating a fontmap (defaults to LETTERS)
+     * @param characters string of characters that will be drawn in the fontmap, and can be used to draw text later on, 
+     * defaults to a character set with all standard keyboard characters. You can also specify any character as long as it is
+     * supported by the font (chinees, greek, etc...).
+     * @param xOffset spacing between letters in fontmap, defaults to 2, increse when other characters in a font are visibale when drawing a character
+     * will almost never happen, 2 is pretty safe already (texture size may increse when xOffset is higher).
+     * @param background the background color of the FontMap, defults to full transparancy
+     */
+    export function mkFontMap(font: Font, options?: TextureOptions, characters?: string, xOffset?: number, background?: Color): FontMap;
+    /**
+     * Creates a FontMap which can be used in a TextGrix to mutable text, use for bitmap fonts
+     *
+     * @param bitmapFont sprite with all characters as sub images
+     * @param options fontsize of the text in the sprite
+     * @param spacing with of a cpace character
+     */
+    export function mkFontMap(bitmapFont: Sprite, size: number, spacing: number): FontMap;
+    export function mkFontMap(par1: Font | Sprite, par2: TextureOptions | number = LETTERS, par3?: string | number, xOffset?: number, background?: Color): FontMap {
+        if (isFont(par1)) {
+            return new FontMap(par1, par2 as TextureOptions, par3 as string, xOffset, background);
+        }
+        else return new FontMap(par1, par2 as number, par3 as number);
+    }
+
+    function isFont(f: any): f is Font {
+        return (f.getFontSize) ? true : false;
+    }
+
+    /**
+     * Creates a WritableImg of specific size, you can write to it with a WritableGrix (uses framebuffers)
+     *
+     * @param width width of the texture
+     * @param height height of the texture
+     * @param options texture options when creating texture
+     */
+    export function mkWritableImg(width: number, height: number, options: TextureOptions = PIXEL_NORMAL): WritableImg {
+        return new WritableImg(width, height, options.smooth, options.repeat);
+    }
+
+    /**
+     * Creates a texture from a string of text
+     *
+     * @param text string of text to draw
+     * @param font font to draw the text in
+     * @param options texture options when creating texture
+     * @param maxWidth line break length, -1 for endless lines (defaults to -1)
+     * @param yOffset y offset between lines, 0 for normal offset (defaults to 0)
+     * @param background background color of texture (defaults to full transparancy)
+     */
+    export function mkTextImg(text: string, font: Font, options?: TextureOptions, maxWidth: number = -1, yOffset: number = 0, background?: Color): Img {
+        if (!options) options = LETTERS;
+
+        let texture = gl.createTexture();
+        let retImg = new Img(texture);
+        let c = document.createElement('canvas');
+        let ctx = c.getContext('2d');
+
         font.apply(ctx);
 
-        var splitText:string[];
+        let splitText: string[];
         if (maxWidth >= 0) {
-            var splitText = this.textSplit(text, maxWidth, ctx);
-            maxWidth = Math.max(maxWidth, this.getMaxLength(ctx, splitText))
+            splitText = textSplit(text, maxWidth, ctx);
+            maxWidth = Math.max(maxWidth, getMaxLength(ctx, splitText))
         }
 
-        var width = maxWidth >= 0 ? maxWidth : ctx.measureText(text).width + 3;
-        var height = splitText ? (splitText.length * (font.getFontSize() + offset)) - offset : font.getFontSize();
+        let width = maxWidth >= 0 ? maxWidth : ctx.measureText(text).width + 3;
+        let height = splitText ? (splitText.length * (font.getFontSize() + yOffset)) - yOffset : font.getFontSize();
+        let align = (font.getAlign() == "center") ? width / 2 : font.getAlign() == "right" ? width : 0;
+
         height = height += font.getFontSize();
-        var align = (font.getAlign() == "center") ? width / 2 : font.getAlign() == "right" ? width : 0;
 
         c.width = Math.pow(2, Math.ceil(MMath.logN(2, width)))
         c.height = Math.pow(2, Math.ceil(MMath.logN(2, height)))
+        retImg.imgLoaded(c.width, c.height, 0, 0, width, height, false);
         font.apply(ctx)
 
         if (background) {
-            ctx.fillStyle = background
+            ctx.fillStyle = background.style();
             ctx.fillRect(0, 0, width, height);
         }
 
         if (splitText) {
             if (font.getFill()) {
                 ctx.fillStyle = font.getFill();
-                for (var i = 0; i < splitText.length; i++) {
-                    var tx = splitText[i];
-                    ctx.fillText(tx, align, i * (font.getFontSize() + offset) + font.getFontSize() / 2)
+                for (let i = 0; i < splitText.length; i++) {
+                    ctx.fillText(splitText[i], align, i * (font.getFontSize() + yOffset) + font.getFontSize() / 2)
                 }
             }
             if (font.getStroke()) {
                 ctx.strokeStyle = font.getStroke();
-                for (var i = 0; i < splitText.length; i++) {
-                    var tx = splitText[i];
-                    ctx.strokeText(tx, align, i * (font.getFontSize() + offset) + font.getFontSize() / 2)
+                for (let i = 0; i < splitText.length; i++) {
+                    ctx.strokeText(splitText[i], align, i * (font.getFontSize() + yOffset) + font.getFontSize() / 2)
                 }
             }
         } else {
@@ -63,38 +242,31 @@ class TextureManager {
             }
         }
 
-        var nwSrc = c.toDataURL();
-        var tex = new Image();
-        retImg.imgLoaded(c.width, c.height, 0, 0, width, height, false);
-        tex.onload = () => {
-            this.handleTextureLoaded(tex, texture, false, smooth);
-        }
-        tex.src = nwSrc;
+        dataToTexture(ctx, texture, options);
         return retImg;
     }
 
-    private getMaxLength(ctx:CanvasRenderingContext2D, text:string[]):number {
-        var max = 0;
-        for (var i = 0; i < text.length; i++) {
-            var l = ctx.measureText(text[i]).width;
+    function getMaxLength(ctx:CanvasRenderingContext2D, text:string[]):number {
+        let max = 0;
+        for (let tx of text) {
+            let l = ctx.measureText(tx).width;
             if (l > max) max = l;
         }
         return max;
     }
 
-    private textSplit(text: string, max: number, ctx: CanvasRenderingContext2D): string[] {
-        var retText: string[] = [];
+    function textSplit(text: string, max: number, ctx: CanvasRenderingContext2D): string[] {
+        let retText: string[] = [];
+        let textArr = text.split(" ");
+        let flag = "";
 
-        var textArr = text.split(" ");
-        var flag = "";
-
-        for (var i = 0; i < textArr.length; i++) {
-            if (flag.length == 0) flag = textArr[i];
+        for (let tx of textArr) {
+            if (flag.length == 0) flag = tx;
             else {
-                var subFlag = flag + " " + textArr[i];
+                let subFlag = flag + " " + tx;
                 if (ctx.measureText(subFlag).width > max) {
                     retText.push(flag);
-                    flag = textArr[i];
+                    flag = tx;
                 } else flag = subFlag;
             }
         }
@@ -103,43 +275,64 @@ class TextureManager {
         return retText;
     }
 
-    private initTexture(src: string, repeat: boolean, smooth: boolean): Img {
-        var texture = gl.createTexture();
-        var retImg = new Img(texture);
+    /**
+     * Creates a new Font, most font properties can be set later
+     *
+     * @param family font family of font, cannot be changed
+     * @param size, fontsize, can be changed
+     */
+    export function getFont(family: string, size: number):Font {
+        return new Font(family, size);
+    }
 
-        var img = new Image();
-        img.onload = () => {
-            if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
-                retImg.imgLoaded(img.width, img.height, 0, 0, img.width, img.height, false);
-                this.handleTextureLoaded(img, texture, repeat, smooth);
-            } else {
-                var c = document.createElement('canvas');
-                c.width = Math.pow(2, Math.ceil(MMath.logN(2, img.width)));
-                c.height = Math.pow(2, Math.ceil(MMath.logN(2, img.height)));
-                var ctx = c.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                var nwSrc = c.toDataURL();
-                var tex = new Image();
-                retImg.imgLoaded(c.width, c.height, 0, 0, img.width, img.height, false);
-                tex.onload = () => {
-                    this.handleTextureLoaded(tex, texture, repeat, smooth);
-                }
-                tex.src = nwSrc;
-            }
-        };
-        img.src = src;
+    /**
+     * Create a texture from a CanvasRenderingContext2D
+     *
+     * @param ctx the context
+     * @param options texture options used when creating texture
+     */
+    export function getTexture(ctx: CanvasRenderingContext2D, options?: TextureOptions): Img {
+        if (!options) options = PIXEL_NORMAL;
+
+        let c = ctx.canvas;
+        let width = c.width;
+        let height = c.height;
+        let texture = gl.createTexture();
+        let retImg = new Img(texture);
+        let data = ctx.getImageData(0, 0, width, height);
+
+        c.width = Math.pow(2, Math.ceil(MMath.logN(2, width)));
+        c.height = Math.pow(2, Math.ceil(MMath.logN(2, height)));
+        retImg.imgLoaded(c.width, c.height, 0, 0, width, height, options.safe);
+        ctx.putImageData(data, 0, 0);
+        dataToTexture(ctx, texture, options);
 
         return retImg;
     }
-
-    private handleTextureLoaded(image: HTMLImageElement, texture, repeat: boolean, smooth: boolean) {
+    
+    function dataToTexture(thing: CanvasRenderingContext2D | HTMLImageElement, texture, options: TextureOptions) {
         gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, smooth ? gl.LINEAR : gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, smooth ? gl.LINEAR_MIPMAP_NEAREST : gl.NEAREST_MIPMAP_NEAREST);
-        if (repeat) gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+
+        if (isCtx(thing)) {
+            let c = thing.canvas;
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, thing.getImageData(0, 0, c.width, c.height));
+        } else {
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, thing);
+        }
+
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, options.smooth ? gl.LINEAR : gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, options.smooth ? gl.LINEAR_MIPMAP_NEAREST : gl.NEAREST_MIPMAP_NEAREST);
+
+        if (options.repeat) {
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        }
+
         gl.generateMipmap(gl.TEXTURE_2D);
         gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    function isCtx(c: any): c is CanvasRenderingContext2D {
+        return (c.canvas)? true:false;
     }
 }
 
@@ -152,7 +345,7 @@ class TexCoord {
     private width: number;
     private height: number;
 
-    constructor(xMin: number, yMin: number, width: number, height: number, maxX: number, maxY:number, safe: boolean) {
+    constructor(xMin: number, yMin: number, width: number, height: number, maxX: number, maxY: number, safe: boolean) {
         this.minX = (xMin + (safe ? 0.5 : 0)) / maxX;
         this.minY = (yMin + (safe ? 0.5 : 0)) / maxY;
         this.maxX = xMin / maxX + ((width - (safe ? 0.5 : 0)) / maxX);
@@ -162,11 +355,11 @@ class TexCoord {
         this.height = height;
     }
 
-    getWidthFromHeight(height: number): number {
+    widthFHeight(height: number): number {
         return ((this.maxX - this.minX) / (this.maxY - this.minY)) * height;
     }
 
-    getHeightFromWidth(width: number): number {
+    heightFWidth(width: number): number {
         return ((this.maxY - this.minY) / (this.maxX - this.minX)) * width;
     }
 
@@ -187,6 +380,7 @@ class TexCoord {
     }
 }
 
+
 class Img {
     private texture;
     private width: number;
@@ -194,7 +388,6 @@ class Img {
     private coord: TexCoord;
     private callbackLoaded = new Queue<(Img) => void>();
     private isLoaded = false;
-    private id: string;
     private sizeX: number;
     private sizeY: number;
 
@@ -202,11 +395,7 @@ class Img {
         this.texture = texture;
     }
 
-    getId(): string {
-        return this.id;
-    }
-
-    imgLoaded(maxX: number, maxY, x:number, y:number, width: number, height: number, safe:boolean) {
+    imgLoaded(maxX: number, maxY, x: number, y: number, width: number, height: number, safe: boolean) {
         this.sizeX = maxX;
         this.sizeY = maxY;
         this.width = width;
@@ -241,7 +430,7 @@ class Img {
         return this.sizeY;
     }
 
-    getWidth():number {
+    getWidth(): number {
         return this.width;
     }
 
@@ -256,24 +445,18 @@ class Img {
 
 class Sprite {
     private img: Img;
-    private id: string;
     private safe: boolean;
     private subImages: TreeMap<string, Img>;
     private animations: TreeMap<string, Img[]>;
 
-    constructor(img: Img, safe?:boolean) {
+    constructor(img: Img, safe?: boolean) {
         this.img = img;
         this.subImages = new TreeMap<string, Img>(STRING_COMPARE);
-        this.id = img.getId();
         if (safe) this.safe = true;
     }
 
     onLoaded(call: (Img) => void) {
         this.img.onLoaded(call);
-    }
-
-    getId(): string {
-        return this.id;
     }
 
     getImgs(): Img[] {
@@ -284,12 +467,12 @@ class Sprite {
         return this.subImages.keys();
     }
 
-    addImg(key:string, x:number, y:number, width:number, height:number):Sprite {
+    addImg(key: string, x: number, y: number, width: number, height: number): Sprite {
         this.img.onLoaded(this.do_addImg(this, key, x, y, width, height))
         return this;
     }
 
-    addImgs(key:string[], x:number, y:number, width: number, height: number, count: number, vertical?:boolean):Sprite{
+    addImgs(key: string[], x: number, y: number, width: number, height: number, count: number, vertical?: boolean): Sprite {
         this.img.onLoaded(this.do_addImgs(this, key, x, y, width, height, count, vertical))
         return this;
     }
@@ -303,7 +486,7 @@ class Sprite {
         return this.animations.values();
     }
 
-    getAnim(key:string): Img[] {
+    getAnim(key: string): Img[] {
         return this.animations.apply(key);
     }
 
@@ -319,7 +502,7 @@ class Sprite {
         return this.animations.apply(this.arbAnimName());
     }
 
-    private do_addImgs(ths: Sprite, ids: string|string[], x: number, y: number, width: number, height: number, count: number, vertical?:boolean): (Img) => void {
+    private do_addImgs(ths: Sprite, ids: string | string[], x: number, y: number, width: number, height: number, count: number, vertical?: boolean): (Img) => void {
         return function (img: Img) {
             var imgAr: Img[];
             var isAnim = false;
@@ -353,7 +536,7 @@ class Sprite {
         }
     }
 
-    private do_addImg(ths: Sprite, key: string, x:number, y:number, width: number, height: number): (Img) => void {
+    private do_addImg(ths: Sprite, key: string, x: number, y: number, width: number, height: number): (Img) => void {
         return function (img: Img) {
             var subImg = new Img(img.getGLTexture());
             subImg.imgLoaded(img.maxX(), img.maxY(), x, y, width, height, ths.safe)
@@ -387,49 +570,77 @@ class Sprite {
 }
 
 class FontMap {
-    static fontString = "!  @  €  \"  #  $  %  ^  &  *  (  )  [  ]  {  }  -  =  ,  .  ;  :  '  >  <  /  ?  \\  |  1  2  3  4  5  6  7  8  9  0  `  ~  a  b  c  d  e  f  g  h  i  j  k  l  m  n  o  p  q  r  s  t  u  v  w  x  y  z  A  B  C  D  E  F  G  H  I  J  K  L  M  N  O  P  Q  R  S  T  U  V  W  X  Y  Z";
+    static BASIC_KEYS = "!@€\"#$%^&*()[]{}-=,.;:'></?\\|1234567890`~abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     private fontMap: Sprite;
     private spaceWidth: number;
-    private dim: TreeMap<string, [number,number]>;
-    private font;
+    private dim: TreeMap<string, [number, number]>;
+    private size: number;
 
-    constructor(font: Font, fontString: string = FontMap.fontString, smooth: boolean = false, safe: boolean = false, background?: string) {
-        this.fontMap = new Sprite(Plena.textImg(fontString, font.align("left"), font.getFontSize() * 12, 8, smooth, background), safe);
-        var c = document.createElement('canvas');
-        var ctx = c.getContext('2d');
-        font.apply(ctx);
-        this.font = font;
+    constructor(sprite: Sprite, space: number, size: number);
+    constructor(font: Font, options: TextureOptions, fontString?: string, xOffset?: number, background?: Color);
+    constructor(thing: Font | Sprite, info: TextureOptions | number, info2: string | number = FontMap.BASIC_KEYS, xOffset?: number, background?: Color) {
         this.dim = new TreeMap<string, [number, number]>(STRING_COMPARE);
-        this.spaceWidth = ctx.measureText(" ").width;
-        var text = fontString.replace(/\s/g, "");
-        var width = 0;
-        var height = 0;
-        for (var i = 0; i < text.length; i++) {
-            var a = text.charAt(i);
-            var textWidth = ctx.measureText(a).width;
-            var textHeight = font.getFontSize() * 1.20 - 8;
+        if ((<Font>thing).getFontSize) {
+            xOffset = typeof xOffset == 'number' ? xOffset : 2;
+            var font = <Font>thing;
+            var fontString = FontMap.mkCharSet(info2 as string, xOffset);
+            this.fontMap = new Sprite(Assets.mkTextImg(fontString, font.align("left"), info as TextureOptions, font.getFontSize() * 12, 20, background), (info as TextureOptions).safe);
+            var c = document.createElement('canvas');
+            var ctx = c.getContext('2d');
+            font.apply(ctx);
+            this.size = font.getFontSize();
+            this.spaceWidth = ctx.measureText(" ").width;
+            var text = fontString.replace(/\s/g, "");
+            var width = 0;
+            var height = 0;
+            for (var i = 0; i < text.length; i++) {
+                var a = text.charAt(i);
+                var textWidth = ctx.measureText(a).width;
+                var textHeight = font.getFontSize() * 1.20;
 
-            if (width + textWidth > font.getFontSize() * 12) {
-                width = 0;
-                height += font.getFontSize() * 1.127;
+                if (width + textWidth > font.getFontSize() * 12) {
+                    width = 0;
+                    height += font.getFontSize() * 1 + 20;
+                }
+
+                this.fontMap.addImg(a, width, height, textWidth, textHeight);
+                this.dim.put(a, [textWidth, textHeight]);
+                width += textWidth + this.spaceWidth * xOffset;
             }
-
-            this.fontMap.addImg(a, width, height, textWidth, textHeight);
-            this.dim.put(a, [textWidth, textHeight]);
-            width += textWidth + this.spaceWidth * 2;
+        } else {
+            this.fontMap = <Sprite>thing;
+            this.spaceWidth = <number>info;
+            this.size = <number>info2;
+            var letters = this.fontMap.getImgs();
+            var keys = this.fontMap.getImgNames();
+            for (var i = 0; i < letters.length; i++) {
+                var key = keys[i];
+                var letter = letters[i];
+                this.dim.put(key, [letter.getWidth(), letter.getHeight()]);
+            }
         }
     }
 
-    getFont(): Font {
-        return this.font;
+    static mkCharSet(text: string, spaces: number = 2): string {
+        var chars = text.replace(/\s/g, "");
+        var retChars = "";
+        for (var i = 0; i < chars.length; i++) {
+            if(i>0)for (let j = 0; j < spaces; j++)retChars += " ";
+            retChars += chars.charAt(i);
+        }
+        return retChars;
+    }
+
+    defaultSize(): number {
+        return this.size;
     }
 
     getMap(): Sprite {
         return this.fontMap;
     }
 
-    getLetter(char: string):Img {
+    getLetter(char: string): Img {
         return this.fontMap.getImg(char);
     }
 
@@ -442,11 +653,11 @@ class FontMap {
     }
 }
 
-class WritableTexture {
+class WritableImg {
     img: Img;
     frame: Framebuffer;
 
-    constructor(width: number, height: number, smooth?:boolean, repeat?:boolean) {
+    constructor(width: number, height: number, smooth?: boolean, repeat?: boolean) {
         var sizeX = Math.pow(2, Math.ceil(MMath.logN(2, width)));
         var sizeY = Math.pow(2, Math.ceil(MMath.logN(2, height)));
         this.frame = new Framebuffer(sizeX, sizeY, smooth, repeat);
@@ -470,7 +681,7 @@ class WritableTexture {
         return this.frame.getTexture();
     }
 
-    getImg():Img {
+    getImg(): Img {
         return this.img;
     }
 
@@ -485,6 +696,11 @@ class Font {
     private textAlign: string = "left";
     private textFill: string;
     private textStroke: string;
+
+    constructor(family: string, size: number) {
+        this.fontsize = size;
+        this.family = family;
+    }
 
     getFontSize(): number {
         return this.fontsize;
@@ -507,38 +723,6 @@ class Font {
         return this.textStroke;
     }
 
-    static ARIAL = "Arial, 'Helvetica Neue', Helvetica, sans-serif"
-    static ARIAL_BOLD = "'Arial Black', 'Arial Bold', Gadget, sans-serif"
-    static ARIAL_NARROW = "'Arial Narrow', Arial, sans-serif"
-    static ARIAL_ROUNDED = "'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif"
-    static CALIBRI = "Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif"
-    static CANDARA = "Candara, Calibri, Segoe, 'Segoe UI', Optima, Arial, sans-serif"
-    static CENTURY_GOTHIC = "'Century Gothic', CenturyGothic, AppleGothic, sans-serif"
-    static GILL_SANS = "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif"
-    static HELVETICA = "'Helvetica Neue', Helvetica, Arial, sans-serif"
-    static TAHOMA = "Tahoma, Verdana, Segoe, sans-serif"
-    static TREBUCHET_MS = "'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif"
-    static VERDANA = "Verdana, Geneva, sans-serif"
-    static BOOK_ANTIQUA = "'Book Antiqua', Palatino, 'Palatino Linotype', 'Palatino LT STD', Georgia, serif"
-    static CAMBRIA = "Cambria, Georgia, serif"
-    static GARAMOND = "Garamond, Baskerville, 'Baskerville Old Face', 'Hoefler Text', 'Times New Roman', serif"
-    static GEORGRIA = "Georgia, Times, 'Times New Roman', serif"
-    static LUCIDA_BRIGHT = "'Lucida Bright', Georgia, serif"
-    static PALATINO = "Palatino, 'Palatino Linotype', 'Palatino LT STD', 'Book Antiqua', Georgia, serif"
-    static BASKERVILLE = "Baskerville, 'Baskerville Old Face', 'Hoefler Text', Garamond, 'Times New Roman', serif"
-    static TIMES_NEW_ROMAN = "TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif"
-    static CONSOLAS = "Consolas, monaco, monospace"
-    static COURIER_NEW = "'Courier New', Courier, 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace"
-    static MONACO = "monaco, Consolas, 'Lucida Console', monospace"
-    static COPPERPLATE = "Copperplate, 'Copperplate Gothic Light', fantasy"
-    static PAPYRUS = "Papyrus, fantasy"
-    static BRUSH_SCRIPT_MT = "'Brush Script MT', cursive"
-
-    constructor(size: number, family: string) {
-        this.fontsize = size;
-        this.family = family;
-    }
-
     apply(ctx: CanvasRenderingContext2D) {
         ctx.textAlign = this.getAlign();
         ctx.textBaseline = "middle";
@@ -550,13 +734,13 @@ class Font {
         return this;
     }
 
-    fill(r: number, g: number, b: number, a:number): Font {
-        this.textFill = "rgba(" + r + "," + g + "," + b + "," + a + ")";
+    fill(color: Color): Font {
+        this.textFill = color.style();
         return this;
     }
 
-    stroke(r: number, g: number, b: number, a: number): Font {
-        this.textStroke = "rgba(" + r + "," + g + "," + b + "," + a + ")";
+    stroke(color:Color): Font {
+        this.textStroke = color.style();
         return this;
     }
 
@@ -566,28 +750,34 @@ class Font {
     }
 }
 
-class AudioManager {
-    private audio: TreeMap<string, AudioObj> = new TreeMap<string, AudioObj>(STRING_COMPARE);
-
-    getAudio(key: string): AudioObj {
-        return this.audio.apply(key);
-    }
-
-    hasAudio(key:string) {
-        return this.audio.contains(key);
-    }
-
-    loadAudio(key: string, audioName: string) {
-        var container = document.createElement("audio");
-        var source = document.createElement("source");
-        container.setAttribute('id', key);
-        source.setAttribute('type', "audio/ogg");
-        source.setAttribute('src', audioName);
-        container.appendChild(source);
-        document.body.appendChild(container);
-
-        this.audio.put(key, new AudioObj(container));
-    }
+namespace Font {
+    export const
+        ARIAL = "Arial, 'Helvetica Neue', Helvetica, sans-serif",
+        ARIAL_BOLD = "'Arial Black', 'Arial Bold', Gadget, sans-serif",
+        ARIAL_NARROW = "'Arial Narrow', Arial, sans-serif",
+        ARIAL_ROUNDED = "'Arial Rounded MT Bold', 'Helvetica Rounded', Arial, sans-serif",
+        CALIBRI = "Calibri, Candara, Segoe, 'Segoe UI', Optima, Arial, sans-serif",
+        CANDARA = "Candara, Calibri, Segoe, 'Segoe UI', Optima, Arial, sans-serif",
+        CENTURY_GOTHIC = "'Century Gothic', CenturyGothic, AppleGothic, sans-serif",
+        GILL_SANS = "'Gill Sans', 'Gill Sans MT', Calibri, sans-serif",
+        HELVETICA = "'Helvetica Neue', Helvetica, Arial, sans-serif",
+        TAHOMA = "Tahoma, Verdana, Segoe, sans-serif",
+        TREBUCHET_MS = "'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif",
+        VERDANA = "Verdana, Geneva, sans-serif",
+        BOOK_ANTIQUA = "'Book Antiqua', Palatino, 'Palatino Linotype', 'Palatino LT STD', Georgia, serif",
+        CAMBRIA = "Cambria, Georgia, serif",
+        GARAMOND = "Garamond, Baskerville, 'Baskerville Old Face', 'Hoefler Text', 'Times New Roman', serif",
+        GEORGRIA = "Georgia, Times, 'Times New Roman', serif",
+        LUCIDA_BRIGHT = "'Lucida Bright', Georgia, serif",
+        PALATINO = "Palatino, 'Palatino Linotype', 'Palatino LT STD', 'Book Antiqua', Georgia, serif",
+        BASKERVILLE = "Baskerville, 'Baskerville Old Face', 'Hoefler Text', Garamond, 'Times New Roman', serif",
+        TIMES_NEW_ROMAN = "TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif",
+        CONSOLAS = "Consolas, monaco, monospace",
+        COURIER_NEW = "'Courier New', Courier, 'Lucida Sans Typewriter', 'Lucida Typewriter', monospace",
+        MONACO = "monaco, Consolas, 'Lucida Console', monospace",
+        COPPERPLATE = "Copperplate, 'Copperplate Gothic Light', fantasy",
+        PAPYRUS = "Papyrus, fantasy",
+        BRUSH_SCRIPT_MT = "'Brush Script MT', cursive"
 }
 
 class AudioObj {
@@ -609,7 +799,7 @@ class AudioObj {
         !this.audio.paused
     }
 
-    currentTime():number {
+    currentTime(): number {
         return this.audio.currentTime;
     }
 
@@ -617,7 +807,7 @@ class AudioObj {
         this.audio.currentTime = num;
     }
 
-    duration():number {
+    duration(): number {
         return this.audio.duration;
     }
 

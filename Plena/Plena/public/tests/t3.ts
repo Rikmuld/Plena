@@ -8,7 +8,7 @@
 
     export function setup() {
         cat = new Grix()
-            .animationFromSprite(Plena.loadSpriteFile("cats.png")
+            .animationFromSprite(Assets.loadSprite("cats.png")
                 .addAnimImgs(cats[0], 0, 5 * 32, 32, 32, 3)
                 .addAnimImgs(cats[1], 3 * 32, 5 * 32, 32, 32, 3)
                 .addAnimImgs(cats[2], 6 * 32, 5 * 32, 32, 32, 3)
@@ -41,4 +41,4 @@
     function switchTopDown() { top *= -1; }
 }
 
-Plena.init(t3.setup, t3.render, t3.update, 500, 500, [0.4, 0.8, 0.6, 1]);
+Plena.init(t3.setup, t3.render, t3.update, 500, 500, new Color(255, 200, 175));

@@ -1,14 +1,12 @@
-﻿var gl;
+﻿var gl: WebGLRenderingContext;
 
 //all textures loaded cheack and only then call render/update stuff (option)
 //fullscreen option
 //loader at start option
-//full screen filters, write entire screen to texture and apply
-//texture load filters
-//bitmap to fontmap loader
+//different shader/projection for hud no view
 module Plena {
     var renderLp, updateLp: (delta: number) => void;
-    var canvas;
+    var canvas: HTMLCanvasElement;
     var lastTick:number;
 
     var shadColFrag = "\
@@ -70,20 +68,20 @@ module Plena {
 
     var spriteManager: Manager;
 
-    var textureManager: TextureManager;
-    var audioManager: AudioManager;
-
     var camera: Camera;
     var projection: Vec4;
     var projectionSave: Vec4;
+    
+    var canvasX: number;
+    var canvasY: number;
 
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: number[]);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: number[]);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: number[]);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number|number[], p2?: number, p3?: number|number[], p4?: number, p5?: number[]) {
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: Color);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: Color);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: Color);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number|Color, p2?: number, p3?: number|Color, p4?: number, p5?: Color) {
         var width, height, x, y: number;
         var color: number[];
 
@@ -92,26 +90,23 @@ module Plena {
             height = p4;
             x = p1;
             y = p2;
-            if (p5) color = <number[]>p5;
-            else color = [1, 1, 1, 1]
+            if (p5) color = (p5 as Color).vec();
+            else color = [1, 1, 1, 1];
         } else if (typeof p2 == 'number') {
             width = p1;
             height = p2;
             x = window.innerWidth / 2 - width / 2;
             y = window.innerHeight / 2 - height / 2;
-            if (p3) color = <number[]>p3;
-            else color = [1, 1, 1, 1]
+            if (p3) color = (p3 as Color).vec();
+            else color = [1, 1, 1, 1];
         } else {
             width = window.innerWidth;
             height = window.innerHeight;
             x = 0;
             y = 0;
-            if (p1) color = <number[]>p1;
-            else color = [1, 1, 1, 1]
+            if (p1) color = (p1 as Color).vec();
+            else color = [1, 1, 1, 1];
         }
-
-        textureManager = new TextureManager();
-        audioManager = new AudioManager();
 
         canvas = document.createElement('canvas');
         canvas.setAttribute("width", "" + width);
@@ -119,19 +114,22 @@ module Plena {
         canvas.setAttribute("style", "position:fixed; top:" + y + "px; left:" + x + "px")
         document.body.appendChild(canvas)
 
+        canvasX = x;
+        canvasY = y;
+
         Plena.width = width;
         Plena.height = height;
 
-        gl = canvas.getContext("experimental-webgl");
+        gl = (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")) as WebGLRenderingContext
+        
+        gl.viewport(0, 0, width, height)
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.clearColor(color[0], color[1], color[2], color[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT)
 
-        GLF.viewPort(0, 0, width, height)
-        GLF.alphaBlend();
-        GLF.clearColor(color)
-        GLF.clearBufferColor();
-
-        Keyboard.listenForKeys();
-        Mouse.listenForPosition();
-        Mouse.listenForClick();
+        Keyboard.enable();
+        Mouse.enable();
 
         colorShader = createShader(ShaderType.COLOR)
         textureShader = createShader(ShaderType.TEXTURE)
@@ -150,30 +148,28 @@ module Plena {
         setupFunc();
         looper()
     }
-    
-    export function fontMap(font: Font, safe: boolean = false, smooth: boolean = false, fontstring?: string): FontMap {
-        return new FontMap(font, fontstring, smooth, safe);
+
+    export function getWidth():number {
+        return mapX(width);
     }
-    export function text(text: string, font: Font, maxWidth: number = -1, offset: number = 0, smooth?: boolean, background?: string):Grix {
-        return new Grix()
-            .fromTexture(Plena.textImg(text, font, maxWidth, offset, smooth, background))
-            .populate();
+    export function getHeight(): number {
+        return mapY(height);
     }
-    export function textImg(text: string, font: Font, maxWidth:number = -1, offset:number = 0, smooth?: boolean, background?: string): Img {
-        return textureManager.loadWebFont(text, font, background, maxWidth, offset, smooth);
+
+    export function mapX(x: number): number {
+        let l = projection[0];
+        let r = projection[1];
+
+        return l + (Math.abs(r - l) / width) * (x - canvasX)
     }
-    export function font(family: string, size: number): Font {
-        return new Font(size, family);
+
+    export function mapY(y: number): number {
+        let t = projection[3];
+        let b = projection[2];
+
+        return t + (Math.abs(b - t) / height) * (y - canvasY);
     }
-    export function loadSpriteFile(src: string, safe?:boolean, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
-        return textureManager.loadSprite(src, safe?true:false, repeat, smooth);
-    }
-    export function loadImg(src: string, repeat?: boolean, smooth?: boolean, id?: string): Img {
-        return textureManager.loadImg(src, repeat, smooth);
-    }
-    export function mkWritableImg(width: number, height: number, smooth?:boolean, repeat?:boolean): WritableTexture {
-        return new WritableTexture(width, height, smooth, repeat);
-    }
+   
     export function saveProjection() {
         projectionSave = projection;
     }
@@ -210,7 +206,7 @@ module Plena {
     }
 
     function looper() {
-        GLF.clearBufferColor();
+        gl.clear(gl.COLOR_BUFFER_BIT);
 
         var tick = Date.now();
         var delta = tick - lastTick;
@@ -294,50 +290,5 @@ module Plena {
                 }
             }
         }
-    }
-}
-
-module GLF {
-    export function clearBufferColor() {
-        gl.clear(gl.COLOR_BUFFER_BIT);
-    }
-
-    export function clearColor(color: Vec4) {
-        gl.clearColor(color[0], color[1], color[2], color[3]);
-    }
-
-    export function viewPort(x: number, y: number, width: number, height: number) {
-        gl.viewport(x, y, width, height);
-    }
-
-    export function alphaBlend() {
-        GLF.blend(true);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    }
-
-    export function blend(enable: boolean) {
-        if (enable) gl.enable(gl.BLEND);
-        else gl.disable(gl.BLEND);
-    }
-}
-
-class Color {
-    static toRGB(hex:string):Vec3 {
-        var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-        hex = hex.replace(shorthandRegex, function (m, r, g, b) {
-            return r + r + g + g + b + b;
-        });
-
-        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : null;
-    }
-
-    private static componentToHex(c:number):string {
-        var hex = c.toString(16);
-        return hex.length == 1 ? "0" + hex : hex;
-    }
-
-    static toHex(r: number, g: number, b: number):string {
-        return "#" + Color.componentToHex(r) + Color.componentToHex(g) + Color.componentToHex(b);
     }
 }
