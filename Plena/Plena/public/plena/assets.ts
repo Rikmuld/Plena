@@ -1,5 +1,7 @@
 ﻿type TextureOptions = Assets.TextureOptions;
 
+//make async and have counter of how maby to go, and event for when done, for starup screen
+
 /**
  * Helper functions for loading and creating assets
  */
