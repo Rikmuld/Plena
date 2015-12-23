@@ -1,11 +1,17 @@
 ﻿type TextureOptions = Assets.TextureOptions;
 
-//make async and have counter of how maby to go, and event for when done, for starup screen
+//make all assets load async, use queue
 
 /**
  * Helper functions for loading and creating assets
  */
 namespace Assets {
+    type QueueListner = (queue:number) => void;
+
+    var queue = 0;
+    var queueListners: QueueListner[] = [];
+    var error: boolean = false;
+
     /**
      * Pre set TextureOption handy for non pixel perfect textures (smooth = true, safe = false, repeat = false)
      */
@@ -65,6 +71,40 @@ namespace Assets {
         return options;
     }
 
+    export function addQueueListner(listner: QueueListner) {
+        queueListners.push(listner);
+    }
+
+    function queueChanged() {
+        for (let listner of queueListners) listner(queue);
+    }
+
+    export function hasError():boolean {
+        return error;
+    }
+
+    export function getQueue():number {
+        return queue;
+    }
+
+    function startLoad() {
+        queue++;
+        queueChanged();
+    }
+
+    function endLoad() {
+        queue--;
+        queueChanged();
+    }
+
+    function errorLoad(type: string, src: string): () => void {
+        return function () {
+            error = true;
+            Plena.log(`Cannot load ${type} file with souorce: ${src}, skipping...`)
+            endLoad();
+        }
+    }
+
     /**
      * Load an img file
      *
@@ -76,7 +116,16 @@ namespace Assets {
         let retImg = new Img(texture);
         let img = new Image();
 
-        img.onload = () => {
+        startLoad()
+        img.onload = imgLoaded(img, retImg, texture)
+        img.onerror = errorLoad("image", src)
+        img.src = src;
+
+        return retImg;
+    }
+
+    function imgLoaded(img: HTMLImageElement, retImg: Img, texture: WebGLTexture): () => void {
+        return function () {
             if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
                 retImg.imgLoaded(img.width, img.height, 0, 0, img.width, img.height, false);
                 dataToTexture(img, texture, options);
@@ -88,12 +137,9 @@ namespace Assets {
                 retImg.imgLoaded(c.width, c.height, 0, 0, img.width, img.height, false);
                 dataToTexture(ctx, texture, options);
             }
-        };
-        img.src = src;
-
-        return retImg;
+            endLoad()
+        }
     }
-
     
     /**
      * Load a sprite sheet. Same as loadImg, but wraps the Img in a Sprite
@@ -111,14 +157,14 @@ namespace Assets {
      * @param src filepath
      */
     export function loadAudio(src: string): AudioObj {
-        let container = document.createElement("audio");
-        let source = document.createElement("source");
-        source.setAttribute('type', "audio/ogg");
-        source.setAttribute('src', src);
-        container.appendChild(source);
-        document.body.appendChild(container);
+        let audio = new Audio();
 
-        return new AudioObj(container);
+        startLoad();
+        audio.oncanplaythrough = endLoad;
+        audio.onerror = errorLoad("audio", src)
+        audio.src = src;
+
+        return new AudioObj(audio);
     }
 
     /**
@@ -293,8 +339,11 @@ namespace Assets {
      * @param ctx the context
      * @param options texture options used when creating texture
      */
-    export function getTexture(ctx: CanvasRenderingContext2D, options?: TextureOptions): Img {
-        if (!options) options = PIXEL_NORMAL;
+    export function getTexture(ct: CanvasRenderingContext2D | HTMLCanvasElement, options: TextureOptions = PIXEL_NORMAL): Img {
+        let ctx: CanvasRenderingContext2D
+
+        if (!isCtx(ct)) ctx = ct.getContext('2d')
+        else ctx = ct
 
         let c = ctx.canvas;
         let width = c.width;
@@ -422,6 +471,10 @@ class Img {
 
     bind() {
         gl.bindTexture(gl.TEXTURE_2D, this.texture)
+    }
+
+    loaded():boolean {
+        return this.isLoaded
     }
 
     maxX(): number {

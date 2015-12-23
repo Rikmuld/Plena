@@ -1,9 +1,12 @@
-//make async and have counter of how maby to go, and event for when done, for starup screen
+//make all assets load async, use queue
 /**
  * Helper functions for loading and creating assets
  */
 var Assets;
 (function (Assets) {
+    var queue = 0;
+    var queueListners = [];
+    var error = false;
     /**
      * Pre set TextureOption handy for non pixel perfect textures (smooth = true, safe = false, repeat = false)
      */
@@ -50,6 +53,39 @@ var Assets;
         return options;
     }
     Assets.options = options;
+    function addQueueListner(listner) {
+        queueListners.push(listner);
+    }
+    Assets.addQueueListner = addQueueListner;
+    function queueChanged() {
+        for (var _i = 0; _i < queueListners.length; _i++) {
+            var listner = queueListners[_i];
+            listner(queue);
+        }
+    }
+    function hasError() {
+        return error;
+    }
+    Assets.hasError = hasError;
+    function getQueue() {
+        return queue;
+    }
+    Assets.getQueue = getQueue;
+    function startLoad() {
+        queue++;
+        queueChanged();
+    }
+    function endLoad() {
+        queue--;
+        queueChanged();
+    }
+    function errorLoad(type, src) {
+        return function () {
+            error = true;
+            Plena.log("Cannot load " + type + " file with souorce: " + src + ", skipping...");
+            endLoad();
+        };
+    }
     /**
      * Load an img file
      *
@@ -61,7 +97,15 @@ var Assets;
         var texture = gl.createTexture();
         var retImg = new Img(texture);
         var img = new Image();
-        img.onload = function () {
+        startLoad();
+        img.onload = imgLoaded(img, retImg, texture);
+        img.onerror = errorLoad("image", src);
+        img.src = src;
+        return retImg;
+    }
+    Assets.loadImg = loadImg;
+    function imgLoaded(img, retImg, texture) {
+        return function () {
             if (MMath.isPowerOf2(img.height) && MMath.isPowerOf2(img.width)) {
                 retImg.imgLoaded(img.width, img.height, 0, 0, img.width, img.height, false);
                 dataToTexture(img, texture, options);
@@ -73,11 +117,9 @@ var Assets;
                 retImg.imgLoaded(c.width, c.height, 0, 0, img.width, img.height, false);
                 dataToTexture(ctx, texture, options);
             }
+            endLoad();
         };
-        img.src = src;
-        return retImg;
     }
-    Assets.loadImg = loadImg;
     /**
      * Load a sprite sheet. Same as loadImg, but wraps the Img in a Sprite
      *
@@ -95,13 +137,12 @@ var Assets;
      * @param src filepath
      */
     function loadAudio(src) {
-        var container = document.createElement("audio");
-        var source = document.createElement("source");
-        source.setAttribute('type', "audio/ogg");
-        source.setAttribute('src', src);
-        container.appendChild(source);
-        document.body.appendChild(container);
-        return new AudioObj(container);
+        var audio = new Audio();
+        startLoad();
+        audio.oncanplaythrough = endLoad;
+        audio.onerror = errorLoad("audio", src);
+        audio.src = src;
+        return new AudioObj(audio);
     }
     Assets.loadAudio = loadAudio;
     /**
@@ -254,9 +295,13 @@ var Assets;
      * @param ctx the context
      * @param options texture options used when creating texture
      */
-    function getTexture(ctx, options) {
-        if (!options)
-            options = Assets.PIXEL_NORMAL;
+    function getTexture(ct, options) {
+        if (options === void 0) { options = Assets.PIXEL_NORMAL; }
+        var ctx;
+        if (!isCtx(ct))
+            ctx = ct.getContext('2d');
+        else
+            ctx = ct;
         var c = ctx.canvas;
         var width = c.width;
         var height = c.height;
@@ -351,6 +396,9 @@ var Img = (function () {
     };
     Img.prototype.bind = function () {
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    };
+    Img.prototype.loaded = function () {
+        return this.isLoaded;
     };
     Img.prototype.maxX = function () {
         return this.sizeX;

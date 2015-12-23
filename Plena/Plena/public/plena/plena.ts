@@ -8,6 +8,7 @@ module Plena {
     var renderLp, updateLp: (delta: number) => void;
     var canvas: HTMLCanvasElement;
     var lastTick:number;
+    var doLog: boolean = true;
 
     var shadColFrag = "\
         precision highp float; \
@@ -74,6 +75,8 @@ module Plena {
     
     var canvasX: number;
     var canvasY: number;
+
+    var totalQueue: number = 0;
 
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number);
@@ -146,7 +149,30 @@ module Plena {
         lastTick = Date.now();
 
         setupFunc();
-        looper()
+
+        totalQueue = Assets.getQueue();
+        if (totalQueue > 0) {
+            log(`Started loading assets, total: ${totalQueue}`);
+            Assets.addQueueListner(asssetsLoadStep);
+        } else looper();
+    }
+
+    function asssetsLoadStep(queue: number) {
+        log(`Loading Assets... progress ${totalQueue-queue}/${totalQueue} assets`);
+
+        if (queue == 0) {
+            if (Assets.hasError()) log(`Assets loading finished with errors`)
+            else log(`Assets loading finished without error`)
+            looper()
+        }
+    }
+
+    export function log(text:string) {
+        if(doLog)console.log(text);
+    }
+
+    export function suppresLog() {
+        doLog = false;
     }
 
     export function getWidth():number {
@@ -286,7 +312,7 @@ module Plena {
                 entry[1].bind();
                 var grixs = this.grixs.itterator(entry[0]);
                 for (var j = 0; j < grixs.length; j++) {
-                    grixs[j].do_render();
+                    grixs[j].doRenderAll();
                 }
             }
         }

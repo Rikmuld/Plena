@@ -212,7 +212,7 @@ namespace Color {
             MAGENTA_DARK = new Color(139, 0, 139),
             PURPLE = new Color(128, 0, 128),
             INDIGO = new Color(75, 0, 130),
-            BLUE_SLATE_DARK = new Color()72, 61, 139,
+            BLUE_SLATE_DARK = new Color(72, 61, 139),
             PURPLE_REBECCA = new Color(102, 51, 153),
             BLUE_SLATE = new Color(106, 90, 205),
             BLUE_SLATE_MEDIUM = new Color(123, 104, 238)

@@ -8,6 +8,7 @@ var Plena;
     var renderLp, updateLp;
     var canvas;
     var lastTick;
+    var doLog = true;
     var shadColFrag = "\
         precision highp float; \
         \
@@ -63,6 +64,7 @@ var Plena;
     var projectionSave;
     var canvasX;
     var canvasY;
+    var totalQueue = 0;
     function init(setupFunc, renderLoop, updateLoop, p1, p2, p3, p4, p5) {
         var width, height, x, y;
         var color;
@@ -123,9 +125,34 @@ var Plena;
         updateLp = updateLoop;
         lastTick = Date.now();
         setupFunc();
-        looper();
+        totalQueue = Assets.getQueue();
+        if (totalQueue > 0) {
+            log("Started loading assets, total: " + totalQueue);
+            Assets.addQueueListner(asssetsLoadStep);
+        }
+        else
+            looper();
     }
     Plena.init = init;
+    function asssetsLoadStep(queue) {
+        log("Loading Assets... progress " + (totalQueue - queue) + "/" + totalQueue + " assets");
+        if (queue == 0) {
+            if (Assets.hasError())
+                log("Assets loading finished with errors");
+            else
+                log("Assets loading finished without error");
+            looper();
+        }
+    }
+    function log(text) {
+        if (doLog)
+            console.log(text);
+    }
+    Plena.log = log;
+    function suppresLog() {
+        doLog = false;
+    }
+    Plena.suppresLog = suppresLog;
     function getWidth() {
         return mapX(Plena.width);
     }
@@ -260,7 +287,7 @@ var Plena;
                 entry[1].bind();
                 var grixs = this.grixs.itterator(entry[0]);
                 for (var j = 0; j < grixs.length; j++) {
-                    grixs[j].do_render();
+                    grixs[j].doRenderAll();
                 }
             }
         };
