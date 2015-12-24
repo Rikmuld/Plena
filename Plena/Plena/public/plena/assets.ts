@@ -557,6 +557,14 @@ class Sprite {
         return this.animations.apply(this.arbAnimName());
     }
 
+    hasAnime(): boolean {
+        return this.animations != null && this.animations.size() > 0;
+    }
+
+    hasSubImg(): boolean {
+        return this.subImages != null && this.subImages.size() > 0;
+    }
+
     private do_addImgs(ths: Sprite, ids: string | string[], x: number, y: number, width: number, height: number, count: number, vertical?: boolean): (Img) => void {
         return function (img: Img) {
             var imgAr: Img[];

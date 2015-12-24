@@ -460,6 +460,12 @@ var Sprite = (function () {
     Sprite.prototype.arbAnim = function () {
         return this.animations.apply(this.arbAnimName());
     };
+    Sprite.prototype.hasAnime = function () {
+        return this.animations != null && this.animations.size() > 0;
+    };
+    Sprite.prototype.hasSubImg = function () {
+        return this.subImages != null && this.subImages.size() > 0;
+    };
     Sprite.prototype.do_addImgs = function (ths, ids, x, y, width, height, count, vertical) {
         return function (img) {
             var imgAr;
