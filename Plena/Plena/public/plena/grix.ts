@@ -238,7 +238,7 @@ abstract class TexturedGrix extends Grix {
 }
 
 class ImgGrix extends TexturedGrix {
-    private texture: Img;
+    protected texture: Img;
 
     add(width: number, height: number, img: Img, x: number = 0, y: number = 0): ImgGrix {
         if (this.texture != null && this.texture != img)Plena.log("You cannot use different texture files in one ImgGrix!")
@@ -274,8 +274,8 @@ class ImgGrix extends TexturedGrix {
 
 namespace Grix {
     export function fromTexture(img: Img | Sprite, width?:number, height?:number): ImgGrix;
-    export function fromTexture(img: CanvasRenderingContext2D | HTMLCanvasElement, width?: number, height?: number, options?: TextureOptions): ImgGrix;
-    export function fromTexture(img: Img | Sprite | CanvasRenderingContext2D | HTMLCanvasElement, width?: number, height?: number, options?: TextureOptions): ImgGrix {        
+    export function fromTexture(img: CanvasRenderingContext2D | HTMLCanvasElement, options?: TextureOptions, width?: number, height?: number): ImgGrix;
+    export function fromTexture(img: Img | Sprite | CanvasRenderingContext2D | HTMLCanvasElement, options?: TextureOptions, width?: number, height?: number): ImgGrix {        
         return new ImgGrix().fromTexture(toImg(img, options), width, height);
     }
 
@@ -293,18 +293,57 @@ namespace Grix {
 
 class WritableGrix extends ImgGrix {
     private writable: WritableImg;
+    private color: AColor;
+    private oldColor: AColor;
+    private wX:number = 0;
+    private wY: number = 0;
+    private pwX: number = 0;
+    private pwY: number = 0;
+    private alpha: number;
 
     constructor(tex: WritableImg, customShader?: Shader) {
         super(customShader);
         this.writable = tex;
+        this.texture = tex.getImg();
     }
 
     startWrite() {
         this.writable.startWrite();
+        if (this.color) {
+            this.oldColor = Plena.getCurrCol();
+            Plena.setColor(this.color);
+        }
     }
 
     endWrite() {
         this.writable.stopWrite();
+        if (this.color) Plena.setColor(this.oldColor)
+    }
+
+    moveWirte(x: number, y: number) {
+        this.moveTo(this.wX + x, this.wY + y);
+    }
+    moveWirteTo(x: number, y: number) {
+        this.moveWirteXTo(x);
+        this.moveWirteYTo(y);
+    }
+    moveWirteXTo(x: number) {
+        this.wX = x - this.writable.getWidth() * this.pwX;
+        this.writable.x = this.wX;
+    }
+    setBackground(color: AColor) {
+        this.color = color;
+    }
+    moveWirteYTo(y: number) {
+        this.wY = y - this.writable.getHeight() * this.pwY;
+        this.writable.y = this.wY;
+    }
+    setPivotWirte(x: number, y: number) {
+        this.pwX = x;
+        this.pwY = y;
+    }
+    clean() {
+        super.clean();
     }
 
     populate(): WritableGrix {
@@ -427,41 +466,297 @@ namespace Grix {
     }
 }
 
-//SpriteGrix(sprite) extends Grix
-//    .add(width height ? x ? y)
-//    .animeActive
-//    .animeStep
-//    .imgActive
+//slow for many, two new types try, one mk textue of text and store than draw tex, two mk render of text and just draw.
+class TextGrix extends SpriteGrix {
+    private fontMap: FontMap;
+    private yOffset: number = 0;
+    private xOffset: number = 0;
 
-//ShapeGrix(draw mode) extends Grix
-//    .moveTo
-//    .add(verts...)
-//    .color
-//    .ellipse
-//    .rect
-//    .circle
-//    .line
-//    .point
-//    .tri
+    //align in tecxt grid, espcially for goood move transforms
+    constructor(fontMap: FontMap, customShader?: Shader) {
+        super(fontMap.getMap(), customShader);
+        this.add(1, 1);
+        this.populate();
 
-//WritableGrix(writableImg) extends ImgGrix
-////ImgGrix which gets img from frame buffer and has write to funcs
+        this.fontMap = fontMap;
+    }
 
-//TextGrix(fontMap) extends SpriteGrix(fontMap.sprite)
-////SpriteGrix where letters are in sprite and has method for drawing whole strings in one go (with options as align, fontsize, line break lenagth (if any), x/y spacing)
+    fontsize(px: number) {
+        var size = px / this.fontMap.defaultSize();
+        this.scaleTo(size, size);
+    }
 
-//old
+    offsetY(offset: number) {
+        this.yOffset = offset;
+    }
 
-//more draw modes (not fill shape but only a border, or a shape witha border, different colors, gradients etc..)
-//font
-//maybe key over or click events
-//enable compound for all ellipses
-//add curves
-//texture mapping for shapes
-//self made shape with moveto (also texture mapping)
-//canvas driven graphix as alternative
-//fix render
-//test time of canvas driven render vs grix
+    offsetX(offset: number) {
+        this.xOffset = offset;
+    }
+
+    storeText(id: number, text: string, maxWidth: number = -1) {
+        //stores text for future draw
+    }
+
+    cleanText(id: number) {
+
+    }
+
+    drawText(id:number) {
+
+    }
+
+    text(text: number, maxWidth: number = -1) {
+        //stores text but discards them the first time the text is not drawn during a render
+    }
+
+    clean() {
+        super.clean();
+        this.yOffset = 0;
+        this.xOffset = 0;
+    }
+
+    freeText(text: string, maxWidth: number = -1) {
+        var x = this.xT;
+        var y = this.yT;
+
+        if (maxWidth != -1) {
+            var textArr = text.split(" ");
+            var width = 0;
+            
+            for (var i = 0; i < textArr.length; i++) {
+                var tx = textArr[i];
+
+                if (width > 0 && width + this.length(tx) > maxWidth) {
+                    width = 0;
+                    this.moveXTo(x)
+                    this.move(0, (this.fontMap.getDim("a")[1] + this.yOffset) * this.sYT)
+                    width += this.do_text(tx + " ");
+                } else {
+                    width += this.do_text(tx + " ");
+                }               
+            }
+        } else {
+            this.do_text(text);
+        }
+    }
+
+    private length(text: string): number {
+        var length = 0;
+        for (var i = 0; i < text.length; i++) {
+            var char = text.charAt(i);
+            length += this.fontMap.getDim(char)[0] * this.sXT + this.xOffset;
+        }
+        return length;
+    }
+
+    private textSplit(text: string, max: number, ctx: CanvasRenderingContext2D): string[] {
+        var retText: string[] = [];
+
+        var textArr = text.split(" ");
+        var flag = "";
+
+        for (var i = 0; i < textArr.length; i++) {
+            if (flag.length == 0) flag = textArr[i];
+            else {
+                var subFlag = flag + " " + textArr[i];
+                if (ctx.measureText(subFlag).width > max) {
+                    retText.push(flag);
+                    flag = textArr[i];
+                } else flag = subFlag;
+            }
+        }
+        if (flag.length > 0) retText.push(flag);
+
+        return retText;
+    }
+
+    private do_text(text: string): number {
+        var dX = this.sXT;
+        var dY = this.sYT;
+
+        var widthTotal = 0;
+        for (var i = 0; i < text.length; i++) {
+            var a = text.charAt(i);
+            if (a == " ") {
+                this.move(this.fontMap.spacing() * dX + this.xOffset, 0);
+                widthTotal += this.fontMap.spacing() * dX + this.xOffset;
+            } else {
+                var dim = this.fontMap.getDim(a);
+                var height = dim[1];
+                var width = dim[0];
+
+                this.activeImg(a);
+                this.scaleToSize(width * dX, height * dY)
+                this.render();
+                this.move(width * dX + this.xOffset, 0);
+                widthTotal += width * dX + this.xOffset;
+            }
+        }
+
+        this.scaleTo(dX, dY);
+        return widthTotal;
+    }
+}
+
+namespace Grix {
+    export function text(text: string, font: Font, options: TextureOptions = Assets.LETTERS, maxWidth: number = -1, offset: number = 0, background?: Color): ImgGrix {
+        return Grix.fromTexture(Assets.mkTextImg(text, font, options, maxWidth, offset, background))
+    }
+
+    export function fromFontMap(fontMap: FontMap) {
+        return new TextGrix(fontMap);
+    }
+}
+
+class ShapeGrix extends Grix {
+    //indieces with id system maybe or so, indieces draw range, max.
+    //draw mode change whenever, also durign draw with clean and grixc
+    private indiece: number = 0;
+    private minX = Math.min();
+    private minY = Math.min();
+    private maxX = Math.max();
+    private maxY = Math.max();
+    private color: AColor;
+    private colorDefault: AColor = Color.Gray.black();
+
+    constructor(drawMode: number)
+    constructor(drawMode: number, shader: Shader)
+    constructor(drawMode: number, shader?: Shader) {
+        super(shader)
+        this.mode = drawMode;
+    }
+
+    populate(): ShapeGrix {
+        this.height = Math.abs(this.maxY - this.minY)
+        this.width = Math.abs(this.maxX - this.minX)
+        super.populate();
+        return this;
+    }
+
+    getShader(): Shader {
+        return !this.customeShader ? Plena.getBasicShader(Plena.ShaderType.COLOR) : this.customeShader;
+    }
+
+    setColor(color: AColor): ShapeGrix {
+        if (this.isFinal) this.color = color;
+        else this.colorDefault = color;
+        return this;
+    }
+    
+    clean() {
+        super.clean();
+        this.color = this.colorDefault;
+    }
+
+    private setMaxMin(xl: number, xh: number, yl: number, yh: number) {
+        this.setMaxMinX(xl, xh);
+        this.setMaxMinY(yl, yh);
+    }
+
+    private setMaxMinX(xl: number, xh: number) {
+        this.minX = Math.min(this.minX, xl);
+        this.maxX = Math.max(this.maxX, xh);
+    }
+
+    private setMaxMinY(yl: number, yh: number) {
+        this.minY = Math.min(this.minY, yl);
+        this.maxY = Math.max(this.maxY, yh);
+    }
+
+    point(x: number, y: number): ShapeGrix {
+        this.drawer.pushVerts([x, y])
+        this.drawer.pushIndices(0, [this.indiece]);
+        this.indiece += 1;
+
+        this.setMaxMin(x, x, y, y);
+        return this;
+    }
+
+    tri() {
+
+    }
+
+    quad(width:number, height:number, x?:number, y?:number) {
+
+    }
+
+    ellipse() {
+
+    }
+
+    circle() {
+
+    }
+
+    polygon() {
+
+    }
+
+    drawMode() {
+
+    }
+
+    add(vertex: number[], indieces?: number[]): ShapeGrix {
+        if ((vertex.length & 1) != 0) Plena.log("Uneven vertex coords supplied to drawer!")
+
+        for (var i = 0; i < vertex.length; i++) {
+            if ((i & 1) == 0) {
+                this.setMaxMinX(vertex[i], vertex[i]);
+            } else {
+                this.setMaxMinY(vertex[i], vertex[i]);
+            }
+        }
+
+        this.drawer.pushVerts(vertex);
+        if (indieces) this.drawer.pushIndices(0, indieces);
+        else {
+            let ind:number[] = [];
+            for (let i = vertex.length / 2; i > 0; i--) {
+                ind.push(this.indiece + ((vertex.length / 2) - i))
+            }
+            this.indiece += vertex.length / 2;
+            this.drawer.pushIndices(0, ind);
+        }
+        return this;
+    }
+
+    drawOffset() {
+
+    }
+
+    protected createGrixc(transform: Mat4): GrixC {
+        let child: ColorGrixC = { transform: transform, color: this.color.vec() }
+        return child;
+    }
+    protected doRender(grixC: GrixC) {
+        let child: ColorGrixC = grixC as ColorGrixC;
+        this.getShader().setVec4(Shader.COLOR, child.color)
+
+        this.drawer.drawElements(0, this.mode)
+    }
+}
+
+interface ColorGrixC extends GrixC {
+    color: number[];
+}
+
+namespace DrawModes {
+    export const
+        POINTS = 0,
+        LINES = 1,
+        LINES_LOOP = 2,
+        LINES_STRIP = 3,
+        TRIANGLES = 4,
+        TRIANGLE_STRIP = 5,
+        TRIANGLE_FAN = 6;
+}
+
+namespace Grix {
+    export function shape(drawMode: number): ShapeGrix {
+        return new ShapeGrix(drawMode);
+    }
+}
 
 //class Grix {
 //    private mode = gl.TRIANGLES;
@@ -877,136 +1172,5 @@ namespace Grix {
 
 //    endWrite() {
 //        this.writable.stopWrite();
-//    }
-//}
-
-//class TextGrix extends Grix {
-//    private fontMap: FontMap;
-//    private yOffset: number = 0;
-//    private xOffset: number = 0;
-
-//    //align in tecxt grid, espcially for goood move transforms
-//    constructor(fontMap: FontMap, customShader?: Shader) {
-//        super(customShader);
-//        this.addSprite(fontMap.getMap());
-//        this.rect(1, 1);
-//        this.populate();
-
-//        this.fontMap = fontMap;
-//    }
-
-//    fontsize(px: number) {
-//        var size = px / this.fontMap.defaultSize();
-//        this.scaleTo(size, size);
-//    }
-
-//    offsetY(offset: number) {
-//        this.yOffset = offset;
-//    }
-
-//    offsetX(offset: number) {
-//        this.xOffset = offset;
-//    }
-
-//    storeText(id: number, text: string, maxWidth: number = -1) {
-
-//    }
-
-//    text(id:number) {
-
-//    }
-
-//    clean() {
-//        super.clean();
-//        this.yOffset = 0;
-//        this.xOffset = 0;
-//    }
-
-//    freeText(text: string, maxWidth: number = -1) {
-//        var x = this.xT;
-//        var y = this.yT;
-
-//        if (maxWidth != -1) {
-//            var textArr = text.split(" ");
-//            var width = 0;
-            
-//            for (var i = 0; i < textArr.length; i++) {
-//                var tx = textArr[i];
-
-//                if (width > 0 && width + this.length(tx) > maxWidth) {
-//                    width = 0;
-//                    this.moveXTo(x)
-//                    this.move(0, (this.fontMap.getDim("a")[1] + this.yOffset) * this.sYT)
-//                    width += this.do_text(tx + " ");
-//                } else {
-//                    width += this.do_text(tx + " ");
-//                }               
-//            }
-//        } else {
-//            this.do_text(text);
-//        }
-//    }
-
-//    private length(text: string): number {
-//        var length = 0;
-//        for (var i = 0; i < text.length; i++) {
-//            var char = text.charAt(i);
-//            length += this.fontMap.getDim(char)[0] * this.sXT + this.xOffset;
-//        }
-//        return length;
-//    }
-
-//    private textSplit(text: string, max: number, ctx: CanvasRenderingContext2D): string[] {
-//        var retText: string[] = [];
-
-//        var textArr = text.split(" ");
-//        var flag = "";
-
-//        for (var i = 0; i < textArr.length; i++) {
-//            if (flag.length == 0) flag = textArr[i];
-//            else {
-//                var subFlag = flag + " " + textArr[i];
-//                if (ctx.measureText(subFlag).width > max) {
-//                    retText.push(flag);
-//                    flag = textArr[i];
-//                } else flag = subFlag;
-//            }
-//        }
-//        if (flag.length > 0) retText.push(flag);
-
-//        return retText;
-//    }
-
-//    private do_text(text: string): number {
-//        var dX = this.sXT;
-//        var dY = this.sYT;
-
-//        var widthTotal = 0;
-//        for (var i = 0; i < text.length; i++) {
-//            var a = text.charAt(i);
-//            if (a == " ") {
-//                this.move(this.fontMap.spacing() * dX + this.xOffset, 0);
-//                widthTotal += this.fontMap.spacing() * dX + this.xOffset;
-//            } else {
-//                var dim = this.fontMap.getDim(a);
-//                var height = dim[1];
-//                var width = dim[0];
-
-//                this.setActiveImg(a);
-//                this.scaleToSize(width * dX, height * dY)
-//                this.render();
-//                this.move(width * dX + this.xOffset, 0);
-//                widthTotal += width * dX + this.xOffset;
-//            }
-//        }
-
-//        this.scaleTo(dX, dY);
-//        return widthTotal;
-//    }
-
-//    static text(text: string, font: Font, options: TextureOptions = Assets.LETTERS, maxWidth: number = -1, offset: number = 0, background?: Color): Grix {
-//        return new Grix()
-//            .fromTexture(Assets.mkTextImg(text, font, options, maxWidth, offset, background))
-//            .populate();
 //    }
 //}

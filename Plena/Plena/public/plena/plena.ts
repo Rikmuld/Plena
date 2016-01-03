@@ -4,11 +4,13 @@
 //fullscreen option
 //loader at start option
 //different shader/projection for hud no view
+//mess, redo, also manager system redo
 module Plena {
     var renderLp, updateLp: (delta: number) => void;
     var canvas: HTMLCanvasElement;
     var lastTick:number;
     var doLog: boolean = true;
+    var currCol: AColor;
 
     var shadColFrag = "\
         precision highp float; \
@@ -71,7 +73,6 @@ module Plena {
 
     var camera: Camera;
     var projection: Vec4;
-    var projectionSave: Vec4;
     
     var canvasX: number;
     var canvasY: number;
@@ -81,10 +82,10 @@ module Plena {
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: Color);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: Color);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: Color);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number|Color, p2?: number, p3?: number|Color, p4?: number, p5?: Color) {
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: AColor);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: AColor);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: AColor);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number | AColor, p2?: number, p3?: number | AColor, p4?: number, p5?: AColor) {
         var width, height, x, y: number;
         var color: number[];
 
@@ -93,23 +94,25 @@ module Plena {
             height = p4;
             x = p1;
             y = p2;
-            if (p5) color = (p5 as Color).vec();
+            if (p5) color = (p5 as AColor).vec();
             else color = [1, 1, 1, 1];
         } else if (typeof p2 == 'number') {
             width = p1;
             height = p2;
             x = window.innerWidth / 2 - width / 2;
             y = window.innerHeight / 2 - height / 2;
-            if (p3) color = (p3 as Color).vec();
+            if (p3) color = (p3 as AColor).vec();
             else color = [1, 1, 1, 1];
         } else {
             width = window.innerWidth;
             height = window.innerHeight;
             x = 0;
             y = 0;
-            if (p1) color = (p1 as Color).vec();
+            if (p1) color = (p1 as AColor).vec();
             else color = [1, 1, 1, 1];
         }
+
+        currCol = new AColor(new Color(color[0], color[1], color[2]), color[3]);
 
         canvas = document.createElement('canvas');
         canvas.setAttribute("width", "" + width);
@@ -182,25 +185,22 @@ module Plena {
         return mapY(height);
     }
 
-    export function mapX(x: number): number {
+    export function mapX(x: number, canvas?:boolean): number {
         let l = projection[0];
         let r = projection[1];
 
-        return l + (Math.abs(r - l) / width) * (x - canvasX)
+        return l + (Math.abs(r - l) / width) * (x - (canvas?canvasX:0))
     }
 
-    export function mapY(y: number): number {
+    export function mapY(y: number, canvas?:boolean): number {
         let t = projection[3];
         let b = projection[2];
 
-        return t + (Math.abs(b - t) / height) * (y - canvasY);
+        return t + (Math.abs(b - t) / height) * (y - (canvas ? canvasY : 0));
     }
    
-    export function saveProjection() {
-        projectionSave = projection;
-    }
-    export function restoreProjection() {
-        changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3])
+    export function getProjection():Vec4 {
+        return projection;
     }
     export function bindCameraTo(entity: Entity) {
         if (camera == null) camera = new Camera(entity);
@@ -212,19 +212,28 @@ module Plena {
     export function getCamera(): Camera {
         return camera;
     }
+    export function setColor(col: AColor) {
+        currCol = col;
+        col.clearcolor();
+    }
+    export function getCurrCol():AColor {
+        return currCol;
+    }
     export function changeProjection(left: number, bottom: number);
     export function changeProjection(left: number, right: number, bottom: number, top: number);
     export function changeProjection(left: number, right: number, bottom?: number, top?: number) {
-        var ortho: Mat4;
-
         if (typeof bottom == 'number') {
-            ortho = Matrix4.ortho(left, right, bottom, top);
             projection = [left, right, bottom, top];
         } else {
-            ortho = Matrix4.ortho(0, left, right, 0);
             projection = [0, left, right, 0];
         }
-        
+
+        setProjection(projection)
+    }
+
+    export function setProjection(proj: Vec4){
+        let ortho = Matrix4.ortho(proj[0], proj[1], proj[2], proj[3]);
+
         colorShader.bind();
         colorShader.getMatHandler().setProjectionMatrix(ortho);
         textureShader.bind();

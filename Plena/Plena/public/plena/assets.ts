@@ -219,8 +219,8 @@ namespace Assets {
      * @param height height of the texture
      * @param options texture options when creating texture
      */
-    export function mkWritableImg(width: number, height: number, options: TextureOptions = PIXEL_NORMAL): WritableImg {
-        return new WritableImg(width, height, options.smooth, options.repeat);
+    export function mkWritableImg(width: number, height: number, fullscreen = false, options: TextureOptions = PIXEL_NORMAL, x: number = 0, y: number = 0): WritableImg {
+        return new WritableImg(x, y, width, height, fullscreen, options.smooth, options.repeat);
     }
 
     /**
@@ -717,27 +717,53 @@ class FontMap {
 }
 
 class WritableImg {
-    img: Img;
-    frame: Framebuffer;
+    private img: Img;
+    private frame: Framebuffer;
 
-    constructor(width: number, height: number, smooth?: boolean, repeat?: boolean) {
+    private fullscreen: boolean;
+    x: number;
+    y: number;
+
+    private projectionSave: Vec4;
+
+    constructor(x:number, y: number, width: number, height: number, fullscreen: boolean = false, smooth?: boolean, repeat?: boolean) {
+        this.fullscreen = fullscreen;
+
         var sizeX = Math.pow(2, Math.ceil(MMath.logN(2, width)));
         var sizeY = Math.pow(2, Math.ceil(MMath.logN(2, height)));
-        this.frame = new Framebuffer(sizeX, sizeY, smooth, repeat);
+        this.frame = new Framebuffer(sizeX, sizeY, width, height, smooth, repeat);
         this.img = new Img(this.frame.getTexture());
         this.img.imgLoaded(sizeX, sizeY, 0, 0, width, height, false);
+        this.x = x;
+        this.y = y;
+    }
+
+    setPos(x:number, y:number) {
+        this.x = x;
+        this.y = y;
+    }
+
+    getWidth(): number{
+        return this.img.getWidth();
+    }
+
+    getHeight(): number {
+        return this.img.getHeight();
     }
 
     startWrite() {
-        Plena.saveProjection();
-        Plena.changeProjection(0, this.img.getWidth(), 0, this.img.getHeight());
+        if (!this.fullscreen) {
+            this.projectionSave = Plena.getProjection();
+            Plena.setProjection([this.x, this.x + this.img.getWidth(), this.y, this.y + this.img.getHeight()]);
+        }
+
         this.frame.startRenderTo();
     }
 
     stopWrite() {
         Plena.forceRender();
         this.frame.stopRenderTo();
-        Plena.restoreProjection();
+        if (!this.fullscreen) Plena.setProjection(this.projectionSave)
     }
 
     getTexture(): WebGLTexture {

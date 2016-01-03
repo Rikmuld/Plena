@@ -308,7 +308,7 @@ class Framebuffer {
     private frameBuffer;
     private frameTexture;
 
-    constructor(sizeX:number, sizeY:number, smooth?:boolean, repeat?:boolean){
+    constructor(sizeX:number, sizeY:number, width:number, height:number, smooth?:boolean, repeat?:boolean){
         this.frameTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -318,8 +318,8 @@ class Framebuffer {
 
         this.frameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-        this.frameBuffer.width = sizeX;
-        this.frameBuffer.height = sizeY;
+        this.frameBuffer.width = width;
+        this.frameBuffer.height = height;
 
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.frameTexture, 0);
 

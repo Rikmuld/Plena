@@ -261,7 +261,7 @@ var Render = (function () {
     return Render;
 })();
 var Framebuffer = (function () {
-    function Framebuffer(sizeX, sizeY, smooth, repeat) {
+    function Framebuffer(sizeX, sizeY, width, height, smooth, repeat) {
         this.frameTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.frameTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
@@ -271,8 +271,8 @@ var Framebuffer = (function () {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
         this.frameBuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer);
-        this.frameBuffer.width = sizeX;
-        this.frameBuffer.height = sizeY;
+        this.frameBuffer.width = width;
+        this.frameBuffer.height = height;
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.frameTexture, 0);
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);

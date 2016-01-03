@@ -83,14 +83,14 @@ var Mouse;
      * Get the current x position of the mouse
      */
     function getX() {
-        return Plena.mapX(mouseX);
+        return Plena.mapX(mouseX, true);
     }
     Mouse.getX = getX;
     /**
      * Get the current y position of the mouse
      */
     function getY() {
-        return Plena.mapY(mouseY);
+        return Plena.mapY(mouseY, true);
     }
     Mouse.getY = getY;
     /**

@@ -177,9 +177,12 @@ var Assets;
      * @param height height of the texture
      * @param options texture options when creating texture
      */
-    function mkWritableImg(width, height, options) {
+    function mkWritableImg(width, height, fullscreen, options, x, y) {
+        if (fullscreen === void 0) { fullscreen = false; }
         if (options === void 0) { options = Assets.PIXEL_NORMAL; }
-        return new WritableImg(width, height, options.smooth, options.repeat);
+        if (x === void 0) { x = 0; }
+        if (y === void 0) { y = 0; }
+        return new WritableImg(x, y, width, height, fullscreen, options.smooth, options.repeat);
     }
     Assets.mkWritableImg = mkWritableImg;
     /**
@@ -601,22 +604,39 @@ var FontMap = (function () {
     return FontMap;
 })();
 var WritableImg = (function () {
-    function WritableImg(width, height, smooth, repeat) {
+    function WritableImg(x, y, width, height, fullscreen, smooth, repeat) {
+        if (fullscreen === void 0) { fullscreen = false; }
+        this.fullscreen = fullscreen;
         var sizeX = Math.pow(2, Math.ceil(MMath.logN(2, width)));
         var sizeY = Math.pow(2, Math.ceil(MMath.logN(2, height)));
-        this.frame = new Framebuffer(sizeX, sizeY, smooth, repeat);
+        this.frame = new Framebuffer(sizeX, sizeY, width, height, smooth, repeat);
         this.img = new Img(this.frame.getTexture());
         this.img.imgLoaded(sizeX, sizeY, 0, 0, width, height, false);
+        this.x = x;
+        this.y = y;
     }
+    WritableImg.prototype.setPos = function (x, y) {
+        this.x = x;
+        this.y = y;
+    };
+    WritableImg.prototype.getWidth = function () {
+        return this.img.getWidth();
+    };
+    WritableImg.prototype.getHeight = function () {
+        return this.img.getHeight();
+    };
     WritableImg.prototype.startWrite = function () {
-        Plena.saveProjection();
-        Plena.changeProjection(0, this.img.getWidth(), 0, this.img.getHeight());
+        if (!this.fullscreen) {
+            this.projectionSave = Plena.getProjection();
+            Plena.setProjection([this.x, this.x + this.img.getWidth(), this.y, this.y + this.img.getHeight()]);
+        }
         this.frame.startRenderTo();
     };
     WritableImg.prototype.stopWrite = function () {
         Plena.forceRender();
         this.frame.stopRenderTo();
-        Plena.restoreProjection();
+        if (!this.fullscreen)
+            Plena.setProjection(this.projectionSave);
     };
     WritableImg.prototype.getTexture = function () {
         return this.frame.getTexture();

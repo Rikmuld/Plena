@@ -3,12 +3,14 @@ var gl;
 //fullscreen option
 //loader at start option
 //different shader/projection for hud no view
+//mess, redo, also manager system redo
 var Plena;
 (function (Plena) {
     var renderLp, updateLp;
     var canvas;
     var lastTick;
     var doLog = true;
+    var currCol;
     var shadColFrag = "\
         precision highp float; \
         \
@@ -61,7 +63,6 @@ var Plena;
     var spriteManager;
     var camera;
     var projection;
-    var projectionSave;
     var canvasX;
     var canvasY;
     var totalQueue = 0;
@@ -98,6 +99,7 @@ var Plena;
             else
                 color = [1, 1, 1, 1];
         }
+        currCol = new AColor(new Color(color[0], color[1], color[2]), color[3]);
         canvas = document.createElement('canvas');
         canvas.setAttribute("width", "" + width);
         canvas.setAttribute("height", "" + height);
@@ -161,26 +163,22 @@ var Plena;
         return mapY(Plena.height);
     }
     Plena.getHeight = getHeight;
-    function mapX(x) {
+    function mapX(x, canvas) {
         var l = projection[0];
         var r = projection[1];
-        return l + (Math.abs(r - l) / Plena.width) * (x - canvasX);
+        return l + (Math.abs(r - l) / Plena.width) * (x - (canvas ? canvasX : 0));
     }
     Plena.mapX = mapX;
-    function mapY(y) {
+    function mapY(y, canvas) {
         var t = projection[3];
         var b = projection[2];
-        return t + (Math.abs(b - t) / Plena.height) * (y - canvasY);
+        return t + (Math.abs(b - t) / Plena.height) * (y - (canvas ? canvasY : 0));
     }
     Plena.mapY = mapY;
-    function saveProjection() {
-        projectionSave = projection;
+    function getProjection() {
+        return projection;
     }
-    Plena.saveProjection = saveProjection;
-    function restoreProjection() {
-        changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3]);
-    }
-    Plena.restoreProjection = restoreProjection;
+    Plena.getProjection = getProjection;
     function bindCameraTo(entity) {
         if (camera == null)
             camera = new Camera(entity);
@@ -196,22 +194,33 @@ var Plena;
         return camera;
     }
     Plena.getCamera = getCamera;
+    function setColor(col) {
+        currCol = col;
+        col.clearcolor();
+    }
+    Plena.setColor = setColor;
+    function getCurrCol() {
+        return currCol;
+    }
+    Plena.getCurrCol = getCurrCol;
     function changeProjection(left, right, bottom, top) {
-        var ortho;
         if (typeof bottom == 'number') {
-            ortho = Matrix4.ortho(left, right, bottom, top);
             projection = [left, right, bottom, top];
         }
         else {
-            ortho = Matrix4.ortho(0, left, right, 0);
             projection = [0, left, right, 0];
         }
+        setProjection(projection);
+    }
+    Plena.changeProjection = changeProjection;
+    function setProjection(proj) {
+        var ortho = Matrix4.ortho(proj[0], proj[1], proj[2], proj[3]);
         colorShader.bind();
         colorShader.getMatHandler().setProjectionMatrix(ortho);
         textureShader.bind();
         textureShader.getMatHandler().setProjectionMatrix(ortho);
     }
-    Plena.changeProjection = changeProjection;
+    Plena.setProjection = setProjection;
     function looper() {
         gl.clear(gl.COLOR_BUFFER_BIT);
         var tick = Date.now();

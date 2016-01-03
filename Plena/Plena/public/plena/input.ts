@@ -99,14 +99,14 @@ namespace Mouse {
      * Get the current x position of the mouse
      */
     export function getX() {
-        return Plena.mapX(mouseX)
+        return Plena.mapX(mouseX, true)
     }
     
     /**
      * Get the current y position of the mouse
      */
     export function getY() {
-        return Plena.mapY(mouseY)
+        return Plena.mapY(mouseY, true)
     }
 
     /**
