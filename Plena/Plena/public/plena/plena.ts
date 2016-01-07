@@ -1,12 +1,16 @@
-﻿var gl;
+﻿var gl: WebGLRenderingContext;
 
 //all textures loaded cheack and only then call render/update stuff (option)
 //fullscreen option
 //loader at start option
+//different shader/projection for hud no view
+//mess, redo, also manager system redo
 module Plena {
     var renderLp, updateLp: (delta: number) => void;
-    var canvas;
+    var canvas: HTMLCanvasElement;
     var lastTick:number;
+    var doLog: boolean = true;
+    var currCol: AColor;
 
     var shadColFrag = "\
         precision highp float; \
@@ -67,20 +71,21 @@ module Plena {
 
     var spriteManager: Manager;
 
-    var textureManager: TextureManager;
-    var audioManager: AudioManager;
-
     var camera: Camera;
     var projection: Vec4;
-    var projectionSave: Vec4;
+    
+    var canvasX: number;
+    var canvasY: number;
+
+    var totalQueue: number = 0;
 
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: number[]);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: number[]);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: number[]);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number|number[], p2?: number, p3?: number|number[], p4?: number, p5?: number[]) {
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: AColor);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: AColor);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: AColor);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number | AColor, p2?: number, p3?: number | AColor, p4?: number, p5?: AColor) {
         var width, height, x, y: number;
         var color: number[];
 
@@ -89,26 +94,25 @@ module Plena {
             height = p4;
             x = p1;
             y = p2;
-            if (p5) color = <number[]>p5;
-            else color = [1, 1, 1, 1]
+            if (p5) color = (p5 as AColor).vec();
+            else color = [1, 1, 1, 1];
         } else if (typeof p2 == 'number') {
             width = p1;
             height = p2;
             x = window.innerWidth / 2 - width / 2;
             y = window.innerHeight / 2 - height / 2;
-            if (p3) color = <number[]>p3;
-            else color = [1, 1, 1, 1]
+            if (p3) color = (p3 as AColor).vec();
+            else color = [1, 1, 1, 1];
         } else {
             width = window.innerWidth;
             height = window.innerHeight;
             x = 0;
             y = 0;
-            if (p1) color = <number[]>p1;
-            else color = [1, 1, 1, 1]
+            if (p1) color = (p1 as AColor).vec();
+            else color = [1, 1, 1, 1];
         }
 
-        textureManager = new TextureManager();
-        audioManager = new AudioManager();
+        currCol = new AColor(new Color(color[0], color[1], color[2]), color[3]);
 
         canvas = document.createElement('canvas');
         canvas.setAttribute("width", "" + width);
@@ -116,19 +120,22 @@ module Plena {
         canvas.setAttribute("style", "position:fixed; top:" + y + "px; left:" + x + "px")
         document.body.appendChild(canvas)
 
+        canvasX = x;
+        canvasY = y;
+
         Plena.width = width;
         Plena.height = height;
 
-        gl = canvas.getContext("experimental-webgl");
+        gl = (canvas.getContext("webgl") || canvas.getContext("experimental-webgl")) as WebGLRenderingContext
+        
+        gl.viewport(0, 0, width, height)
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.clearColor(color[0], color[1], color[2], color[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT)
 
-        GLF.viewPort(0, 0, width, height)
-        GLF.alphaBlend();
-        GLF.clearColor(color)
-        GLF.clearBufferColor();
-
-        Keyboard.listenForKeys();
-        Mouse.listenForPosition();
-        Mouse.listenForClick();
+        Keyboard.enable();
+        Mouse.enable();
 
         colorShader = createShader(ShaderType.COLOR)
         textureShader = createShader(ShaderType.TEXTURE)
@@ -145,29 +152,55 @@ module Plena {
         lastTick = Date.now();
 
         setupFunc();
-        looper()
+
+        totalQueue = Assets.getQueue();
+        if (totalQueue > 0) {
+            log(`Started loading assets, total: ${totalQueue}`);
+            Assets.addQueueListner(asssetsLoadStep);
+        } else looper();
     }
 
-    //img filters?
-    export function loadSpriteFile(src: string, safe?:boolean, repeat?: boolean, smooth?: boolean, id?: string): Sprite {
-        if (!id) id = src.split("/").pop().split('.')[0];
-        return textureManager.loadSprite(src, id, safe?true:false, repeat, smooth);
+    function asssetsLoadStep(queue: number) {
+        log(`Loading Assets... progress ${totalQueue-queue}/${totalQueue} assets`);
+
+        if (queue == 0) {
+            if (Assets.hasError()) log(`Assets loading finished with errors`)
+            else log(`Assets loading finished without error`)
+            looper()
+        }
     }
-    export function loadImg(src: string, repeat?: boolean, smooth?: boolean, id?: string): Img {
-        if (!id) id = src.split("/").pop().split('.')[0];
-        return textureManager.loadImg(src, id, repeat, smooth);
+
+    export function log(text:string) {
+        if(doLog)console.log(text);
     }
-    export function mkWritableImg(width: number, height: number, smooth?:boolean, repeat?:boolean): WritableTexture {
-        return new WritableTexture(width, height, smooth, repeat);
+
+    export function suppresLog() {
+        doLog = false;
     }
-    export function saveProjection() {
-        projectionSave = projection;
+
+    export function getWidth():number {
+        return mapX(width);
     }
-    export function restoreProjection() {
-        changeProjection(projectionSave[0], projectionSave[1], projectionSave[2], projectionSave[3])
+    export function getHeight(): number {
+        return mapY(height);
     }
-    export function getImg(key: string): Img {
-        return textureManager.getTexture(key);
+
+    export function mapX(x: number, canvas?:boolean): number {
+        let l = projection[0];
+        let r = projection[1];
+
+        return l + (Math.abs(r - l) / width) * (x - (canvas?canvasX:0))
+    }
+
+    export function mapY(y: number, canvas?:boolean): number {
+        let t = projection[3];
+        let b = projection[2];
+
+        return t + (Math.abs(b - t) / height) * (y - (canvas ? canvasY : 0));
+    }
+   
+    export function getProjection():Vec4 {
+        return projection;
     }
     export function bindCameraTo(entity: Entity) {
         if (camera == null) camera = new Camera(entity);
@@ -179,19 +212,28 @@ module Plena {
     export function getCamera(): Camera {
         return camera;
     }
+    export function setColor(col: AColor) {
+        currCol = col;
+        col.clearcolor();
+    }
+    export function getCurrCol():AColor {
+        return currCol;
+    }
     export function changeProjection(left: number, bottom: number);
     export function changeProjection(left: number, right: number, bottom: number, top: number);
     export function changeProjection(left: number, right: number, bottom?: number, top?: number) {
-        var ortho: Mat4;
-
         if (typeof bottom == 'number') {
-            ortho = Matrix4.ortho(left, right, bottom, top);
             projection = [left, right, bottom, top];
         } else {
-            ortho = Matrix4.ortho(0, left, right, 0);
             projection = [0, left, right, 0];
         }
-        
+
+        setProjection(projection)
+    }
+
+    export function setProjection(proj: Vec4){
+        let ortho = Matrix4.ortho(proj[0], proj[1], proj[2], proj[3]);
+
         colorShader.bind();
         colorShader.getMatHandler().setProjectionMatrix(ortho);
         textureShader.bind();
@@ -199,7 +241,7 @@ module Plena {
     }
 
     function looper() {
-        GLF.clearBufferColor();
+        gl.clear(gl.COLOR_BUFFER_BIT);
 
         var tick = Date.now();
         var delta = tick - lastTick;
@@ -279,34 +321,9 @@ module Plena {
                 entry[1].bind();
                 var grixs = this.grixs.itterator(entry[0]);
                 for (var j = 0; j < grixs.length; j++) {
-                    grixs[j].do_render();
+                    grixs[j].doRenderAll();
                 }
             }
         }
     }
 }
-
-module GLF {
-    export function clearBufferColor() {
-        gl.clear(gl.COLOR_BUFFER_BIT);
-    }
-
-    export function clearColor(color: Vec4) {
-        gl.clearColor(color[0], color[1], color[2], color[3]);
-    }
-
-    export function viewPort(x: number, y: number, width: number, height: number) {
-        gl.viewport(x, y, width, height);
-    }
-
-    export function alphaBlend() {
-        GLF.blend(true);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-    }
-
-    export function blend(enable: boolean) {
-        if (enable) gl.enable(gl.BLEND);
-        else gl.disable(gl.BLEND);
-    }
-}
-

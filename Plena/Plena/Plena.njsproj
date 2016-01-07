@@ -35,12 +35,16 @@
   </PropertyGroup>
   <ItemGroup>
     <TypeScriptCompile Include="public\plena\assets.ts" />
+    <TypeScriptCompile Include="public\plena\color.ts" />
     <TypeScriptCompile Include="public\plena\data.ts" />
+    <TypeScriptCompile Include="public\plena\grix.ts" />
     <TypeScriptCompile Include="public\plena\graphics.ts" />
     <TypeScriptCompile Include="public\plena\input.ts" />
     <TypeScriptCompile Include="public\plena\math.ts" />
     <TypeScriptCompile Include="public\plena\plena.ts" />
     <TypeScriptCompile Include="public\plena\world.ts" />
+    <TypeScriptCompile Include="public\tests\t12.ts" />
+    <TypeScriptCompile Include="public\tests\t11.ts" />
     <TypeScriptCompile Include="public\tests\t1.ts" />
     <TypeScriptCompile Include="public\tests\t8.ts" />
     <TypeScriptCompile Include="public\tests\t7.ts" />
@@ -50,8 +54,11 @@
     <TypeScriptCompile Include="public\tests\t3.ts" />
     <TypeScriptCompile Include="public\tests\t2.ts" />
     <TypeScriptCompile Include="public\tests\t9.ts" />
+    <TypeScriptCompile Include="public\tests\t92.ts" />
+    <TypeScriptCompile Include="public\tests\t91.ts" />
     <TypeScriptCompile Include="Scripts\typings\node\node.d.ts" />
     <TypeScriptCompile Include="server.ts" />
+    <Content Include="public\test.ogg" />
     <Content Include="package.json" />
     <Content Include="public\cat.png" />
     <Content Include="public\cats.png" />
@@ -80,6 +87,33 @@
     <Folder Include="views\" />
   </ItemGroup>
   <!-- Do not delete the following Import Project.  While this appears to do nothing it is a marker for setting TypeScript properties before our import that depends on them. -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <TypeScriptTarget>ES5</TypeScriptTarget>
+    <TypeScriptJSXEmit>None</TypeScriptJSXEmit>
+    <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
+    <TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
+    <TypeScriptRemoveComments>True</TypeScriptRemoveComments>
+    <TypeScriptOutFile>
+    </TypeScriptOutFile>
+    <TypeScriptOutDir />
+    <TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
+    <TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
+    <TypeScriptMapRoot />
+    <TypeScriptSourceRoot />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+    <TypeScriptTarget>ES6</TypeScriptTarget>
+    <TypeScriptJSXEmit>None</TypeScriptJSXEmit>
+    <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
+    <TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
+    <TypeScriptRemoveComments>False</TypeScriptRemoveComments>
+    <TypeScriptOutFile />
+    <TypeScriptOutDir />
+    <TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
+    <TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
+    <TypeScriptMapRoot />
+    <TypeScriptSourceRoot />
+  </PropertyGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets" Condition="False" />
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsTools.targets" />
   <ProjectExtensions>

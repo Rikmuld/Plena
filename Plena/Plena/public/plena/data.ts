@@ -1,4 +1,7 @@
-﻿var NUMBER_COMPARE = function (a:number, b:number):number {
+﻿//big mess, needs a ton of work
+
+
+var NUMBER_COMPARE = function (a: number, b: number): number {
     return a - b;
 }
 
