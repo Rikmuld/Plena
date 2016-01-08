@@ -46,7 +46,7 @@
 //            writable = Grix.writable(Assets.mkWritableImg(500, 200, false, Assets.NORMAL))
 //            writable.setPivotWirte(0.5, 0.5)
 //            writable.moveWirteTo(Mouse.getX(), Mouse.getY())
-//            writable.setBackground(Color.White.WHITE, 0)
+//            writable.setBackground(Color.White.white(0))
 //            writable.startWrite();
 //        }
 //        cloudy.setPivotMove(0.5, 0.5)
@@ -88,5 +88,5 @@
 //        ready = [x, y];
 //    }
 //}
-//Plena.init(t10.setup, t10.render, t10.update, Color.Blue.BLUE_SKY); 
+//Plena.init(t10.setup, t10.render, t10.update, Color.Blue.blueSky(1)); 
 //# sourceMappingURL=t91.js.map

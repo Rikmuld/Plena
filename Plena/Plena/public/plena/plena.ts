@@ -12,57 +12,6 @@ module Plena {
     var doLog: boolean = true;
     var currCol: AColor;
 
-    var shadColFrag = "\
-        precision highp float; \
-        \
-        uniform vec4 color; \
-        \
-        void main(void){ \
-            gl_FragColor = color; \
-        } ";
-
-    var shadColVertex = "\
-        precision highp float; \
-        \
-        uniform mat4 modelMatrix; \
-        uniform mat4 projectionMatrix; \
-        uniform mat4 viewMatrix; \
-        \
-        attribute vec2 vertexPos; \
-        \
-        void main(void){ \
-            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); \
-        }";
-
-    var shadTexFrag = "\
-        precision highp float; \
-        \
-        varying vec2 UV; \
-        \
-        uniform sampler2D sampler; \
-        \
-        void main(void){ \
-            gl_FragColor = texture2D(sampler, UV); \
-        }";
-
-    var shadTexVertex = "\
-        precision highp float; \
-        \
-        uniform mat4 modelMatrix; \
-        uniform mat4 projectionMatrix; \
-        uniform mat4 viewMatrix; \
-        uniform mat4 UVMatrix; \
-        \
-        varying vec2 UV; \
-        \
-        attribute vec2 vertexPos; \
-        attribute vec2 vertexUV; \
-        \
-        void main(void){ \
-            gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1); \
-            UV = (UVMatrix * vec4(vertexUV, 1, 1)).xy; \
-        } "; 
-
     export var width: number;
     export var height: number;
 
@@ -271,10 +220,22 @@ module Plena {
     export function createShader(typ: ShaderType): Shader {
         var shad: Shader;
         if (typ == ShaderType.COLOR) {
-            shad = new Shader("plenaColorShader", { "projectionMatrix": Shader.PROJECTION_MATRIX, "viewMatrix": Shader.VIEW_MATRIX, "modelMatrix": Shader.MODEL_MATRIX, "color": Shader.COLOR }, shadColVertex, shadColFrag);
+            shad = new Shader("plenaColorShader", {
+                "projectionMatrix": Shader.Uniforms.PROJECTION_MATRIX,
+                "viewMatrix": Shader.Uniforms.VIEW_MATRIX,
+                "modelMatrix": Shader.Uniforms.MODEL_MATRIX,
+                "color": Shader.Uniforms.COLOR
+            }, Shader.Shaders.COLOR_V, Shader.Shaders.COLOR_F);
         } else {
-            shad = new Shader("plenaTextureShader", { "projectionMatrix": Shader.PROJECTION_MATRIX, "viewMatrix": Shader.VIEW_MATRIX, "modelMatrix": Shader.MODEL_MATRIX, "UVMatrix": Shader.UV_MATRIX }, shadTexVertex, shadTexFrag);
+            shad = new Shader("plenaTextureShader", {
+                "projectionMatrix": Shader.Uniforms.PROJECTION_MATRIX,
+                "viewMatrix": Shader.Uniforms.VIEW_MATRIX,
+                "modelMatrix": Shader.Uniforms.MODEL_MATRIX,
+                "UVMatrix": Shader.Uniforms.UV_MATRIX,
+                "color": Shader.Uniforms.COLOR
+            }, Shader.Shaders.TEX_V, Shader.Shaders.TEX_F);
             shad.getMatHandler().setUVMatrix(Matrix4.identity());
+            shad.setVec4(Shader.Uniforms.COLOR, Color.White.white(1).vec())
         }
 
         shad.getMatHandler().setModelMatrix(Matrix4.identity());

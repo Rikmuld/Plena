@@ -43,6 +43,10 @@
     <TypeScriptCompile Include="public\plena\math.ts" />
     <TypeScriptCompile Include="public\plena\plena.ts" />
     <TypeScriptCompile Include="public\plena\world.ts" />
+    <TypeScriptCompile Include="public\tests\tsimul.ts">
+      <SubType>Code</SubType>
+      <TestFramework>Mocha</TestFramework>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="public\tests\t12.ts" />
     <TypeScriptCompile Include="public\tests\t11.ts" />
     <TypeScriptCompile Include="public\tests\t1.ts" />
@@ -65,6 +69,7 @@
     <Content Include="public\garfield.png" />
     <Content Include="public\marble.jpg" />
     <Content Include="public\marbles.jpg" />
+    <Content Include="public\machine.png" />
     <Content Include="README.md" />
     <Content Include="views\doc.jade" />
     <Content Include="views\index.jade" />

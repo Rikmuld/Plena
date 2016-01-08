@@ -1,6 +1,7 @@
 ﻿/**
  * Mouse helper functions
  */
+//context disable add
 namespace Mouse {
     type ButtonEventEx = (x: number, y: number, event: MouseEvent) => any
     type ButtonEvent = (event: MouseEvent) => any
@@ -8,6 +9,7 @@ namespace Mouse {
 
     var pressCalls = new DeepTreeMap<number, ButtonEventEx>(NUMBER_COMPARE)
     var releaseCalls = new DeepTreeMap<number, ButtonEventEx>(NUMBER_COMPARE)
+    var browserControl = true
 
     /**
      * Button code
@@ -130,6 +132,15 @@ namespace Mouse {
      */
     export function isDown(button: number) {
         return buttons[button]
+    }
+
+    /**
+     * Set availability of all default button controlls in the browser
+     * 
+     * @param allow whather or not the browser key controlls will be triggered
+     */
+    export function browserControll(allow: boolean) {
+        browserControl = allow
     }
 
     function triggerButtons(collection: EventMap, button: number, event: MouseEvent) {

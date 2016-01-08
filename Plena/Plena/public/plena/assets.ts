@@ -823,12 +823,12 @@ class Font {
         return this;
     }
 
-    fill(color: Color): Font {
+    fill(color: AColor): Font {
         this.textFill = color.style();
         return this;
     }
 
-    stroke(color:Color): Font {
+    stroke(color:AColor): Font {
         this.textStroke = color.style();
         return this;
     }

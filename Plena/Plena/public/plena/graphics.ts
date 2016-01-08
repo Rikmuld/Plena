@@ -1,10 +1,4 @@
 ﻿class Shader {
-    static PROJECTION_MATRIX: number = 100;
-    static VIEW_MATRIX: number = 101;
-    static MODEL_MATRIX: number = 102;
-    static UV_MATRIX: number = 103;
-    static COLOR: number = 104;
-
     private program: WebGLProgram;
 
     private vertices: number;
@@ -137,6 +131,71 @@
     }
 }
 
+namespace Shader {
+    export namespace Uniforms {
+        export const
+            PROJECTION_MATRIX: number = 100,
+            VIEW_MATRIX: number = 101,
+            MODEL_MATRIX: number = 102,
+            UV_MATRIX: number = 103,
+            COLOR: number = 104
+    }
+
+    export namespace Shaders {
+        export const COLOR_F = `
+            precision highp float;
+
+            uniform vec4 color;
+
+            void main(void){
+                gl_FragColor = color;
+            }`
+
+        export const COLOR_V = `
+            precision highp float;
+
+            uniform mat4 modelMatrix;
+            uniform mat4 projectionMatrix;
+            uniform mat4 viewMatrix;
+
+            attribute vec2 vertexPos;
+
+            void main(void){
+                gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1);
+            }`;
+
+        export const TEX_F = `
+            precision highp float;
+
+            varying vec2 UV;
+
+            uniform sampler2D sampler;
+            uniform vec4 color;
+
+            void main(void){
+                gl_FragColor = texture2D(sampler, UV) * color;
+            }`;
+
+        export const TEX_V = `
+            precision highp float;
+
+            uniform mat4 modelMatrix;
+            uniform mat4 projectionMatrix;
+            uniform mat4 viewMatrix;
+            uniform mat4 UVMatrix;
+
+            varying vec2 UV;
+
+            attribute vec2 vertexPos;
+            attribute vec2 vertexUV;
+
+            void main(void){
+                gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(vertexPos, 1, 1);
+                UV = (UVMatrix * vec4(vertexUV, 1, 1)).xy;
+            }`;
+    }
+}
+
 class MatrixHandler {
     private shader: Shader;
     private projMat = Matrix4.identity();
@@ -147,21 +206,21 @@ class MatrixHandler {
     }
 
     setProjectionMatrix(matrix) {
-        this.shader.setMatrix4(Shader.PROJECTION_MATRIX, matrix)
+        this.shader.setMatrix4(Shader.Uniforms.PROJECTION_MATRIX, matrix)
         this.projMat = matrix;
     }
 
     setModelMatrix(matrix) {
-        this.shader.setMatrix4(Shader.MODEL_MATRIX, matrix)
+        this.shader.setMatrix4(Shader.Uniforms.MODEL_MATRIX, matrix)
     }
 
     setViewMatrix(matrix) {
-        this.shader.setMatrix4(Shader.VIEW_MATRIX, matrix)
+        this.shader.setMatrix4(Shader.Uniforms.VIEW_MATRIX, matrix)
         this.viewMat = matrix;
     }
 
     setUVMatrix(matrix) {
-        this.shader.setMatrix4(Shader.UV_MATRIX, matrix)
+        this.shader.setMatrix4(Shader.Uniforms.UV_MATRIX, matrix)
     }
 }
 
