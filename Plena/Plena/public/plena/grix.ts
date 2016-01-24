@@ -314,11 +314,11 @@ class WritableGrix extends ImgGrix {
     }
 
     startWrite() {
-        this.writable.startWrite();
         if (this.color) {
             this.oldColor = Plena.getCurrCol();
             Plena.setColor(this.color);
         }
+        this.writable.startWrite();
     }
 
     endWrite() {
