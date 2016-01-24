@@ -748,11 +748,11 @@ class WritableImg {
     }
 
     getWidth(): number{
-        return this.img.getWidth();
+        return this.width;
     }
 
     getHeight(): number {
-        return this.img.getHeight();
+        return this.height;
     }
 
     startWrite() {

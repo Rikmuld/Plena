@@ -800,7 +800,6 @@ class ShapeGrix extends Grix {
         this.getShader().setVec4(Shader.Uniforms.COLOR, child.color)
 
         for (let index in this.drawModes) {
-            console.log(this.drawModes)
             this.drawer.drawElements(index, this.drawModes[index])
         }
     }
