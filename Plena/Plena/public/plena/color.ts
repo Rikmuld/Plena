@@ -1,12 +1,21 @@
 ﻿//color gradients implement with mixin for style and require that one for where style is needed, e.x. canvas.
 
+type Col = AColor | Color
+
 class AColor {
     private theColor: Color;
     private alpha: number;
 
-    constructor(color:Color, a:number){
-        this.theColor = color;
-        this.alpha = a;
+    constructor(r: number, g: number, b: number, a: number);
+    constructor(color: Color, a: number);
+    constructor(r: Color | number, g: number, b?: number, a?: number) {
+        if (typeof a == "number") {
+            this.theColor = new Color(r as number, g, b)
+            this.alpha = a;
+        } else {
+            this.theColor = r as Color;
+            this.alpha = b;
+        }
     }
 
     color(): Color {

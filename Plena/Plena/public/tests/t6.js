@@ -6,8 +6,8 @@
 //var WIN_SCORE = 5;
 //module PongCode {
 //    var score = 0;
-//    var bat: Grix
-//    var ball: Grix;
+//    var bat: ShapeGrix
+//    var ball: ShapeGrix;
 //    var tt = 0;
 //    var x1;
 //    var x2;
@@ -18,8 +18,8 @@
 //    var vb = BAR_SPEED_INITIAL;
 //    var isPlaying = false;
 //    export function setup() {
-//        bat = new Grix().setColorRGB(100, 160, 100).rect(20, BAR_RADIUS * 2).populate();
-//        ball = new Grix().circle(BALL_RADIUS).setColorRGB(255, 80, 100).populate();
+//        bat = Grix.shape().setColor(new Color(100, 160, 100)).quad(20, BAR_RADIUS * 2).populate();
+//        ball = Grix.shape(DrawModes.TRIANGLE_FAN).circle(BALL_RADIUS).setColor(new Color(255, 80, 100)).populate();
 //        Keyboard.addPressedEvent(startBall, Keyboard.KEY_SPACE);
 //        Keyboard.addPressedEvent(end, Keyboard.KEY_ESCAPE);
 //        Mouse.hide();
@@ -74,13 +74,13 @@
 //    }
 //    export function render(delta: number) {
 //        gl.clearColor(.15, .15, .15, 1)  
-//        if (score > 0) bat.setColorRGB(100 + score * 40, 160 - score * 20, 100);
-//        else bat.setColorRGB(100 + score * 40, 160 + score * 10, 100 - score * 50);
+//        if (score > 0) bat.setColor(new Color(100 + score * 40, 160 - score * 20, 100));
+//        else bat.setColor(new Color(100 + score * 40, 160 + score * 10, 100 - score * 50));
 //        bat.setPivotMove(0.5, 0.5)
 //        bat.moveTo(25, x1)
 //        bat.render();
-//        if (score < 0) bat.setColorRGB(100 - score * 40, 160 + score * 20, 100);
-//        else bat.setColorRGB(100 - score * 40, 160 - score * 10, 100 + score * 50);
+//        if (score < 0) bat.setColor(new Color(100 - score * 40, 160 + score * 20, 100));
+//        else bat.setColor(new Color(100 - score * 40, 160 - score * 10, 100 + score * 50));
 //        bat.moveTo(window.innerWidth - 25, x2);
 //        bat.render();
 //        ball.setPivotMove(0.5, 0.5)
