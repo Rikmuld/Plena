@@ -77,7 +77,7 @@ class Graph {
     x: number
     y: number
     color: AColor
-
+    
     constructor(color:AColor, x:number, y:number) {
         this.x = x
         this.y = y
@@ -89,9 +89,9 @@ class Graph {
     }
 
     draw() {
-        grix.setColor(this.color)
+        grix.setColor(this.color)   
         grix.setPivotMove(0.5, 0.5)
-        grix.scaleToSize(3, 3)
+        grix.scaleToSize(5, 5)
          
         for (let point of this.data) {
             grix.moveTo(this.x + point[0], this.y + point[1])
@@ -135,7 +135,7 @@ function setup() {
     grix = new ShapeGrix(DrawModes.TRIANGLES).quad(100, 100).populate()
     boxLine = new ShapeGrix(DrawModes.LINES_LOOP).add([0, 0, 200, 0, 200, 50, 0, 50]).setColor(Color.White.white(1)).populate()
 
-    machineGrix = Grix.fromSprite(Assets.loadSprite("machine.png", Assets.PIXEL_NORMAL)
+    machineGrix = Grix.fromSprite(Assets.loadSprite("machine.png", Assets.TILE_SHEET)
         .addImg(Textures.FACTORY, 0, 0, 420, 420)
         .addImg(Textures.SOLAR, 420, 0, 420, 420)
         .addImg(Textures.CITY, 840, 0, 420, 420))
@@ -230,4 +230,3 @@ function render(delta: number) {
 }
 
 Plena.init(setup, render, update, new AColor(new Color(110, 175, 45), 1))
-document.oncontextmenu = function () { return false; };
