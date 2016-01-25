@@ -67,8 +67,8 @@ abstract class Grix {
         //rotating and mirroring does not work together, I made something to have the displacement of mirroring to be corected, but I did not keep the rotation into account, so only angle==0 will work with mirroring, it does work with scaling
         if (!this.isLoaded()) return;
 
-        var centerX = ((this.width * this.sXT) / 2);
-        var centerY = ((this.height * this.sYT) / 2);
+        var centerX = ((this.width * this.getXScale()) / 2);
+        var centerY = ((this.height * this.getYScale()) / 2);
 
         var aC = Math.cos(this.angle)
         var aS = Math.sin(this.angle)
@@ -80,14 +80,20 @@ abstract class Grix {
 
         var x2 = !this.relRotP ? - this.prX + this.xT : - centerX - this.prX * (centerX * 2);
         var y2 = !this.relRotP ? -this.prY + this.yT : - centerY - this.prY * (centerY * 2);
-        var x3 = this.sXT * mX;
-        var y3 = this.sYT * mY;
+        var x3 = this.getXScale() * mX;
+        var y3 = this.getYScale() * mY;
         var x1 = xTr + (this.mirrorX ? centerX * 2 : 0) + (!this.relRotP ? this.prX - xTr : this.prX * (centerX * 2)) + aC * x2 + -aS * y2;
         var y1 = yTr + (this.mirrorY ? centerY * 2 : 0) + (!this.relRotP ? this.prY - yTr : this.prY * (centerY * 2)) + aS * x2 + aC * y2;
 
         var transform = [aC * x3, aS * x3, 0, 0, -aS * y3, aC * y3, 0, 0, 0, 0, 1, 0, x1, y1, 0, 1];
 
         this.childs.enqueue(this.createGrixc(transform));
+    }
+    protected getXScale(): number {
+        return this.sXT
+    }
+    protected getYScale(): number{
+        return this.sYT;
     }
     protected createGrixc(transform: Mat4):GrixC {
         return { transform: transform };
@@ -97,14 +103,14 @@ abstract class Grix {
         this.yT += y;
     }
     moveTo(x: number, y: number) {
-        this.xT = x - (this.width * this.sXT) * this.pmX;
-        this.yT = y - (this.height * this.sYT) * this.pmY;
+        this.moveXTo(x)
+        this.moveYTo(y)
     }
     moveXTo(x: number) {
-        this.xT = x - (this.width * this.sXT) * this.pmX;
+        this.xT = x - (this.width * this.getXScale()) * this.pmX;
     }
     moveYTo(y: number) {
-        this.yT = y - (this.height * this.sYT) * this.pmY;
+        this.yT = y - (this.height * this.getYScale())  * this.pmY;
     }
     scale(x: number, y: number) {
         this.sXT += x;
@@ -115,8 +121,8 @@ abstract class Grix {
         this.sYT = y;
     }
     scaleToSize(width: number, height: number) {
-        var x = width / this.width;
-        var y = height / this.height;
+        var x = width / this.width
+        var y = height / this.height
         this.scaleTo(x, y);
     }
     scaleWidthToSize(width: number) {
@@ -124,7 +130,7 @@ abstract class Grix {
         this.scaleTo(x, x);
     }
     scaleHeightToSize(height: number) {
-        var y = height / this.height;
+        var y = height / this.height
         this.scaleTo(y, y);
     }
     rotate(angle: number) {
@@ -175,10 +181,10 @@ abstract class Grix {
         this.pmY = y;
     }
     getWidth(): number {
-        return this.width * this.sXT;
+        return this.width * this.getXScale();
     }
     getHeight(): number {
-        return this.height * this.sYT
+        return this.height * this.getYScale();
     }
 }
 
@@ -293,8 +299,8 @@ namespace Grix {
 
 class WritableGrix extends ImgGrix {
     private writable: WritableImg;
-    private color: AColor;
-    private oldColor: AColor;
+    private color: Col;
+    private oldColor: Col;
     private wX:number = 0;
     private wY: number = 0;
     private pwX: number = 0;
@@ -308,11 +314,11 @@ class WritableGrix extends ImgGrix {
     }
 
     startWrite() {
-        this.writable.startWrite();
         if (this.color) {
             this.oldColor = Plena.getCurrCol();
             Plena.setColor(this.color);
         }
+        this.writable.startWrite();
     }
 
     endWrite() {
@@ -331,7 +337,7 @@ class WritableGrix extends ImgGrix {
         this.wX = x - this.writable.getWidth() * this.pwX;
         this.writable.x = this.wX;
     }
-    setBackground(color: AColor) {
+    setBackground(color: Col) {
         this.color = color;
     }
     moveWirteYTo(y: number) {
@@ -366,6 +372,9 @@ class SpriteGrix extends TexturedGrix {
     private defaultAnime: string;
     private defaultImg: string;
     private step: number = 0;
+    private autoSize: boolean = false;
+    private imgWidth: number = 0;
+    private imgHeight: number = 0;
 
     constructor(sprite: Sprite, customShader?: Shader) {
         super(customShader);
@@ -385,11 +394,12 @@ class SpriteGrix extends TexturedGrix {
         return this;
     }
 
-    fromSprite(width?:number, height?:number): SpriteGrix {
+    fromSprite(): SpriteGrix {
         this.texture.onLoaded(() => {
             let img = this.defaultImg ? this.texture.getImg(this.defaultImg) : this.texture.getAnim(this.defaultAnime)[0];
 
-            this.add(width ? width : img.getWidth(), height ? height : img.getHeight());
+            this.add(1, 1);
+            this.autoSize = true;
             this.populate();
         });
         return this;
@@ -402,12 +412,21 @@ class SpriteGrix extends TexturedGrix {
     clean() {
         super.clean();
 
-        this.step = 0;
         this.img = this.defaultImg;
         this.anime = this.defaultAnime;
+
+        if (this.autoSize) {
+            this.imgWidth = ((this.img) ? this.texture.getImg(this.img):this.texture.getAnim(this.anime)[0]).getWidth();
+            this.imgHeight = ((this.img) ? this.texture.getImg(this.img):this.texture.getAnim(this.anime)[0]).getHeight();
+        }
     }
 
     activeImg(img: string): SpriteGrix {
+        if (this.autoSize) {
+            this.imgWidth = this.texture.getImg(img).getWidth();
+            this.imgHeight = this.texture.getImg(img).getHeight();
+        }
+
         if (this.isFinal) this.img = img;
         else this.defaultImg = img;
 
@@ -416,12 +435,42 @@ class SpriteGrix extends TexturedGrix {
         return this;
     }
     activeAnime(anime: string): SpriteGrix {
+        if (this.autoSize) {
+            this.imgWidth = this.texture.getAnim(anime)[0].getWidth();
+            this.imgHeight = this.texture.getAnim(anime)[0].getHeight();
+        }
+
         if (this.isFinal) this.anime = anime;
         else this.defaultAnime = anime;
 
         this.img = null;
         this.defaultImg = null;
         return this;
+    }
+    scaleToSize(width: number, height: number) {
+        var x = width / this.getImgWidth()
+        var y = height / this.getImgHeight()
+        this.scaleTo(x, y);
+    }
+    scaleWidthToSize(width: number) {
+        var x = width / this.getImgWidth();
+        this.scaleTo(x, x);
+    }
+    scaleHeightToSize(height: number) {
+        var y = height / this.getImgHeight()
+        this.scaleTo(y, y);
+    }
+    getImgWidth() {
+        return (this.autoSize ? this.imgWidth : this.width)
+    }
+    getImgHeight() {
+        return (this.autoSize ? this.imgHeight : this.height)
+    }
+    protected getXScale(): number {
+        return this.sXT * ((this.autoSize) ? this.imgWidth : 1)
+    }
+    protected getYScale(): number {
+        return this.sYT * ((this.autoSize) ? this.imgHeight : 1)
     }
     animeStep(step: number) {
         if (this.anime == null) Plena.log("Cannot set animation setp, no active animation was set");
@@ -461,8 +510,8 @@ interface SpriteGrixC extends GrixC {
 }
 
 namespace Grix {
-    export function fromSprite(sprite: Sprite, width?:number, height?:number): SpriteGrix {
-        return new SpriteGrix(sprite).fromSprite(width, height);
+    export function fromSprite(sprite: Sprite): SpriteGrix {
+        return new SpriteGrix(sprite).fromSprite();
     }
 }
 
@@ -610,23 +659,18 @@ namespace Grix {
 }
 
 class ShapeGrix extends Grix {
-    //indieces with id system maybe or so, indieces draw range, max.
-    //draw mode change whenever, also durign draw with clean and grixc
     //draw offset affecting all x and y coords
-    private indiece: number = 0;
+    //render one id indieces only, give spoecific draw mode for render real time
+    //color per index
+    //ellipse
     private minX = Math.min();
     private minY = Math.min();
     private maxX = Math.max();
     private maxY = Math.max();
-    private color: AColor;
-    private colorDefault: AColor = Color.Gray.black();
-
-    constructor(drawMode: number)
-    constructor(drawMode: number, shader: Shader)
-    constructor(drawMode: number, shader?: Shader) {
-        super(shader)
-        this.mode = drawMode;
-    }
+    private color: Col;
+    private colorDefault: Col = Color.Gray.BLACK;
+    private indiece:number = 0;
+    private drawModes: number[] = [gl.TRIANGLES];
 
     populate(): ShapeGrix {
         this.height = Math.abs(this.maxY - this.minY)
@@ -639,7 +683,7 @@ class ShapeGrix extends Grix {
         return !this.customeShader ? Plena.getBasicShader(Plena.ShaderType.COLOR) : this.customeShader;
     }
 
-    setColor(color: AColor): ShapeGrix {
+    setColor(color: Col): ShapeGrix {
         if (this.isFinal) this.color = color;
         else this.colorDefault = color;
         return this;
@@ -665,43 +709,75 @@ class ShapeGrix extends Grix {
         this.maxY = Math.max(this.maxY, yh);
     }
 
-    point(x: number, y: number): ShapeGrix {
+    point(x: number, y: number, index: number = 0): ShapeGrix {
         this.drawer.pushVerts([x, y])
-        this.drawer.pushIndices(0, [this.indiece]);
+        this.drawer.pushIndices(index, [this.indiece]);
         this.indiece += 1;
 
         this.setMaxMin(x, x, y, y);
         return this;
     }
-    line(x: number, y: number, xo: number, yo: number) {
 
+    line(x: number, y: number, xo: number, yo: number, index: number = 0): ShapeGrix {
+        this.drawer.pushVerts([x, y, xo, yo])
+        this.drawer.pushIndices(index, [this.indiece, this.indiece + 1]);
+        this.indiece += 2;
+
+        this.setMaxMin(x, xo, y, yo);
+        return this;
     }
 
-    quad(width: number, height: number, x: number = 0, y: number = 0): ShapeGrix {
+    quad(width: number, height: number, x: number = 0, y: number = 0, index: number = 0): ShapeGrix {
+        if (x < 0 || y < 0) Plena.log("A negative value for x or y was passed to a grix, grix might not behave as sespected during transformation before drawing, try to make this positive. The positioning is not meant for presise positioning in a world, only for relative location to other shapes in this grix, use move transformation in grix for presise transformation in your world")
+
+        let ind = this.indiece;
+
         this.drawer.pushVerts([x, y, x + width, y, x + width, y + height, x, y + height]);
-        this.drawer.pushIndices(0, [this.indiece, this.indiece + 1, this.indiece + 3, this.indiece + 1, this.indiece + 2, this.indiece + 3]);
+        this.drawer.pushIndices(index, [ind, ind + 1, ind + 2, ind + 2, ind + 3, ind + 0]);
 
         this.setMaxMin(x, x+width, y, y+height)
         this.indiece += 4;
         return this;
     }
 
-    ellipse(radiusX: number, radiusY: number, parts: number = 35, x: number = 0, y:number = 0): ShapeGrix {
+    ellipse(radiusX: number, radiusY: number, x: number = 0, y: number = 0, index: number = 0, center: boolean = true, parts: number = 35): ShapeGrix {
+        var coords = center? [x + radiusX, y + radiusY] : [];
+        var indicies = center ? [0] : [];
+        if (center) this.indiece += 1;
+
+        for (var i = 0; i < parts + 1; i++) {
+            var angle = i * ((Math.PI * 2) / parts);
+            coords.push(x + radiusX + Math.cos(angle) * radiusX);
+            coords.push(y + radiusY + Math.sin(angle) * radiusY);
+            indicies.push(i + this.indiece);
+        }
+        this.drawer.pushVerts(coords);
+        this.drawer.pushIndices(index, indicies);
+        this.setMaxMin(x - radiusX, x + radiusX, y - radiusX, y + radiusX)
+        this.indiece += parts + 1
         return this;
     }
 
-    circle(radius: number, parts: number = 35, x:number = 0, y:number = 0): ShapeGrix {
-        return this.ellipse(radius, radius, parts);
+    circle(radius: number, x: number = 0, y: number = 0, index: number = 0, center: boolean = true, parts: number = 35): ShapeGrix {
+        return this.ellipse(radius, radius, x, y, index, center, parts);
     }
-    polygon(radius: number, corners: number): ShapeGrix {
-        return this.circle(radius, corners);
-    }
-
-    drawMode() {
-
+    polygon(radius: number, corners: number, x: number = 0, y: number = 0, index: number = 0, center: boolean = true): ShapeGrix {
+        return this.circle(radius, x, y, index, center, corners);
     }
 
-    add(vertex: number[], indieces?: number[]): ShapeGrix {
+    drawmode(mode: number, index: number = 0): ShapeGrix {
+        this.drawModes[index] = mode;
+        return this;
+    }
+
+    drawmodes(modes: number[]): ShapeGrix {
+        for (let mode in modes) {
+            this.drawModes[mode] = modes[mode];
+        }
+        return this;
+    }
+
+    add(vertex: number[], indieces?: number[], index: number = 0): ShapeGrix {
         if ((vertex.length & 1) != 0) Plena.log("Uneven vertex coords supplied to drawer!")
 
         for (var i = 0; i < vertex.length; i++) {
@@ -713,14 +789,14 @@ class ShapeGrix extends Grix {
         }
 
         this.drawer.pushVerts(vertex);
-        if (indieces) this.drawer.pushIndices(0, indieces);
+        if (indieces) this.drawer.pushIndices(index, indieces);
         else {
             let ind:number[] = [];
             for (let i = vertex.length / 2; i > 0; i--) {
                 ind.push(this.indiece + ((vertex.length / 2) - i))
             }
             this.indiece += vertex.length / 2;
-            this.drawer.pushIndices(0, ind);
+            this.drawer.pushIndices(index, ind);
         }
         return this;
     }
@@ -737,7 +813,9 @@ class ShapeGrix extends Grix {
         let child: ColorGrixC = grixC as ColorGrixC;
         this.getShader().setVec4(Shader.Uniforms.COLOR, child.color)
 
-        this.drawer.drawElements(0, this.mode)
+        for (let index in this.drawModes) {
+            this.drawer.drawElements(index, this.drawModes[index])
+        }
     }
 }
 
@@ -757,7 +835,7 @@ namespace DrawModes {
 }
 
 namespace Grix {
-    export function shape(drawMode: number): ShapeGrix {
-        return new ShapeGrix(drawMode);
+    export function shape(): ShapeGrix {
+        return new ShapeGrix();
     }
 }

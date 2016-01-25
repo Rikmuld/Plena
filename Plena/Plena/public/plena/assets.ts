@@ -219,8 +219,8 @@ namespace Assets {
      * @param height height of the texture
      * @param options texture options when creating texture
      */
-    export function mkWritableImg(width: number, height: number, fullscreen = false, options: TextureOptions = PIXEL_NORMAL, x: number = 0, y: number = 0): WritableImg {
-        return new WritableImg(x, y, width, height, fullscreen, options.smooth, options.repeat);
+    export function mkWritableImg(width: number, height: number, x: number = 0, y: number = 0, resX?: number, resY?: number, options: TextureOptions = NORMAL): WritableImg {
+        return new WritableImg(x, y, width, height, resX, resY, options.smooth, options.repeat);
     }
 
     /**
@@ -720,22 +720,26 @@ class WritableImg {
     private img: Img;
     private frame: Framebuffer;
 
-    private fullscreen: boolean;
+    width: number;
+    height: number;
     x: number;
     y: number;
 
     private projectionSave: Vec4;
 
-    constructor(x:number, y: number, width: number, height: number, fullscreen: boolean = false, smooth?: boolean, repeat?: boolean) {
-        this.fullscreen = fullscreen;
+    constructor(x:number, y: number, width: number, height: number, resX?: number, resY?:number, smooth?: boolean, repeat?: boolean) {
+        resX = resX ? resX : width;
+        resY = resY ? resY : height;
 
-        var sizeX = Math.pow(2, Math.ceil(MMath.logN(2, width)));
-        var sizeY = Math.pow(2, Math.ceil(MMath.logN(2, height)));
-        this.frame = new Framebuffer(sizeX, sizeY, width, height, smooth, repeat);
+        var sizeX = Math.pow(2, Math.ceil(MMath.logN(2, resX)));
+        var sizeY = Math.pow(2, Math.ceil(MMath.logN(2, resY)));
+        this.frame = new Framebuffer(sizeX, sizeY, resX, resY, smooth, repeat);
         this.img = new Img(this.frame.getTexture());
-        this.img.imgLoaded(sizeX, sizeY, 0, 0, width, height, false);
+        this.img.imgLoaded(sizeX, sizeY, 0, 0, resX, resY, false);
         this.x = x;
         this.y = y;
+        this.width = width;
+        this.height = height;
     }
 
     setPos(x:number, y:number) {
@@ -744,26 +748,23 @@ class WritableImg {
     }
 
     getWidth(): number{
-        return this.img.getWidth();
+        return this.width;
     }
 
     getHeight(): number {
-        return this.img.getHeight();
+        return this.height;
     }
 
     startWrite() {
-        if (!this.fullscreen) {
-            this.projectionSave = Plena.getProjection();
-            Plena.setProjection([this.x, this.x + this.img.getWidth(), this.y, this.y + this.img.getHeight()]);
-        }
-
+        this.projectionSave = Plena.getProjection();
+        Plena.setProjection([this.x, this.x + this.width, this.y, this.y + this.height]);
         this.frame.startRenderTo();
     }
 
     stopWrite() {
         Plena.forceRender();
         this.frame.stopRenderTo();
-        if (!this.fullscreen) Plena.setProjection(this.projectionSave)
+        Plena.setProjection(this.projectionSave)
     }
 
     getTexture(): WebGLTexture {

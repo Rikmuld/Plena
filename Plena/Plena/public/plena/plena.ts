@@ -10,7 +10,7 @@ module Plena {
     var canvas: HTMLCanvasElement;
     var lastTick:number;
     var doLog: boolean = true;
-    var currCol: AColor;
+    var currCol: Col = Color.White.WHITE;
 
     export var width: number;
     export var height: number;
@@ -31,37 +31,31 @@ module Plena {
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number);
     export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: AColor);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: AColor);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: AColor);
-    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number | AColor, p2?: number, p3?: number | AColor, p4?: number, p5?: AColor) {
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, width: number, height: number, color: Col);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, color: Col);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, x: number, y: number, width: number, height: number, color: Col);
+    export function init(setupFunc: () => void, renderLoop: (delta: number) => void, updateLoop: (delta: number) => void, p1?: number | Col, p2?: number, p3?: number | Col, p4?: number, p5?: Col) {
         var width, height, x, y: number;
-        var color: number[];
 
         if (typeof p3 == 'number') {
             width = p3;
             height = p4;
             x = p1;
             y = p2;
-            if (p5) color = (p5 as AColor).vec();
-            else color = [1, 1, 1, 1];
+            if (p5) currCol = (p5 as Col)
         } else if (typeof p2 == 'number') {
             width = p1;
             height = p2;
             x = window.innerWidth / 2 - width / 2;
             y = window.innerHeight / 2 - height / 2;
-            if (p3) color = (p3 as AColor).vec();
-            else color = [1, 1, 1, 1];
+            if (p3) currCol = (p3 as Col)
         } else {
             width = window.innerWidth;
             height = window.innerHeight;
             x = 0;
             y = 0;
-            if (p1) color = (p1 as AColor).vec();
-            else color = [1, 1, 1, 1];
+            if (p1) currCol = (p1 as Col);
         }
-
-        currCol = new AColor(new Color(color[0], color[1], color[2]), color[3]);
 
         canvas = document.createElement('canvas');
         canvas.setAttribute("width", "" + width);
@@ -80,7 +74,7 @@ module Plena {
         gl.viewport(0, 0, width, height)
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.clearColor(color[0], color[1], color[2], color[3]);
+        currCol.clearcolor()
         gl.clear(gl.COLOR_BUFFER_BIT)
 
         Keyboard.enable();
@@ -161,12 +155,18 @@ module Plena {
     export function getCamera(): Camera {
         return camera;
     }
-    export function setColor(col: AColor) {
+    export function setColor(col: Col) {
         currCol = col;
         col.clearcolor();
     }
-    export function getCurrCol():AColor {
+    export function getCurrCol(): Col {
         return currCol;
+    }
+    export function fixedResolutionH(height:number) {
+        changeProjection(height * (window.innerWidth / window.innerHeight), height)
+    }
+    export function fixedResolutionW(width: number) {
+        changeProjection(width, width * (window.innerHeight / window.innerWidth))
     }
     export function changeProjection(left: number, bottom: number);
     export function changeProjection(left: number, right: number, bottom: number, top: number);
