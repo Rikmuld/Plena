@@ -42,6 +42,7 @@
     <TypeScriptCompile Include="public\plena\input.ts" />
     <TypeScriptCompile Include="public\plena\math.ts" />
     <TypeScriptCompile Include="public\plena\plena.ts" />
+    <TypeScriptCompile Include="public\plena\view.ts" />
     <TypeScriptCompile Include="public\plena\world.ts" />
     <TypeScriptCompile Include="public\tests\tgrixtest.ts" />
     <TypeScriptCompile Include="public\tests\tsimul.ts">

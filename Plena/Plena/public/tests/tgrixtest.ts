@@ -9,8 +9,14 @@ module t100 {
 
     var mode = 0;
 
+    var world: Views.View;
+    var HUD: Views.View;
+
     export function setup() {
-        Plena.fixedResolutionH(1080);
+        world = Views.createView();
+        world.fixedResolutionH(1080);
+
+        HUD = Views.createView();
         Mouse.hide()
 
         let shape = new ShapeGrix()
@@ -36,12 +42,12 @@ module t100 {
 
         mouse = Grix.shape().drawmode(6, 0).circle(15).setColor(Color.White.AZURE).populate();
 
-        let writable = Assets.mkWritableImg(400, 400, Plena.getWidth() / 2 - 200, Plena.getHeight() / 2 - 200, 1200, 1200, Assets.NORMAL)
+        let writable = Assets.mkWritableImg(400, 400, world.getWidth() / 2 - 200, world.getHeight() / 2 - 200, 1200, 1200, Assets.NORMAL)
         flow = new WritableGrix(writable).add(300, 300, writable.getImg()).populate() as WritableGrix
         flow.setBackground(new AColor(0, 0, 0, 0));
-        flow.startWrite()
+        flow.startWrite(world)
         shape.setPivotMove(0.5, 0.5)
-        shape.moveTo(Plena.getWidth() / 2, Plena.getHeight() / 2)
+        shape.moveTo(world.getWidth() / 2, world.getHeight() / 2)
 
         for (var i = 0; i < 10; i++) {
             shape.rotate(Math.PI / 5)
@@ -55,37 +61,38 @@ module t100 {
         rotate += 0.0015 * delta;
     }
     export function render(delta: number) {
+        world.view();
         drawScreen();
-        Plena.forceRender();
 
         screen.setPivotWirte(0.5, 0.5);
-        screen.moveWirteTo(Mouse.getX(), Mouse.getY())
+        screen.moveWirteTo(Mouse.getX(world), Mouse.getY(world))
         if (mode == 0) screen.setBackground(Color.Gray.BLACK)
         else screen.setBackground(new AColor(0, 0, 0, 0))
-        screen.startWrite();
+        screen.startWrite(world);
         drawScreen();
         screen.endWrite();
 
         screen.setPivotMove(0.5, 0.5)
         screen.scaleToSize(640, 360)
-        screen.moveTo(Plena.getWidth() / 2, Plena.getHeight() / 2)
+        screen.moveTo(world.getWidth() / 2, world.getHeight() / 2)
         screen.render();
         Plena.forceRender();
 
         recorder.setPivotMove(0.5, 0.5)
         if (mode == -1) {
-            recorder.moveTo(Mouse.getX(), Mouse.getY())
+            recorder.moveTo(Mouse.getX(world), Mouse.getY(world))
             recorder.render()
         }
         recorder.scaleTo(8, 8)
-        recorder.moveTo(Plena.getWidth() / 2, Plena.getHeight() / 2)
+        recorder.moveTo(world.getWidth() / 2, world.getHeight() / 2)
         recorder.render()
 
         if (mode == 0) {
+            HUD.view()
             mouse.setPivotMove(0.5, 0.5)
             if (Math.floor(rotate) % 2 == 1) mouse.setColor(Color.Red.CRIMSON);
-            mouse.scaleHeightToSize(20000 / Plena.height)
-            mouse.moveTo(Mouse.getX(), Mouse.getY())
+            mouse.scaleHeightToSize(15)
+            mouse.moveTo(Mouse.getX(HUD), Mouse.getY(HUD))
             mouse.render()
         }
     }
@@ -95,17 +102,15 @@ module t100 {
         flow.scaleToSize(250, 250)
         flow.moveTo(150, 150)
         flow.render()
-        flow.moveTo(Plena.getWidth() - 150, 150)
+        flow.moveTo(world.getWidth() - 150, 150)
         flow.render()
-        flow.moveTo(150, Plena.getHeight() - 150)
+        flow.moveTo(150, world.getHeight() - 150)
         flow.render()
-        flow.moveTo(Plena.getWidth() - 150, Plena.getHeight() - 150)
+        flow.moveTo(world.getWidth() - 150, world.getHeight() - 150)
         flow.render()
     }
-    function flipMode(x: number, y: number, event: MouseEvent) {
+    function flipMode(event: MouseEvent) {
         mode = ~mode
-
-        console.log(mode)
     }
 }
 Plena.init(t100.setup, t100.render, t100.update, Color.Cyan.TEAL)

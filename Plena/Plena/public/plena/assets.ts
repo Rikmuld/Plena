@@ -586,7 +586,6 @@ class Sprite {
                 var row = vertical ? Math.floor(i / rowCount) : i % rowCount;
                 var subImg = new Img(img.getGLTexture());
 
-                console.log(ths.safe)
                 subImg.imgLoaded(img.maxX(), img.maxY(), x + row * width, y + colom * height, width, height, ths.safe);
                 if (!isAnim) ths.subImages.put(key, subImg);
                 else imgAr.push(subImg)
@@ -725,6 +724,7 @@ class WritableImg {
     x: number;
     y: number;
 
+    private lastView: Views.View;
     private projectionSave: Vec4;
 
     constructor(x:number, y: number, width: number, height: number, resX?: number, resY?:number, smooth?: boolean, repeat?: boolean) {
@@ -755,16 +755,20 @@ class WritableImg {
         return this.height;
     }
 
-    startWrite() {
-        this.projectionSave = Plena.getProjection();
-        Plena.setProjection([this.x, this.x + this.width, this.y, this.y + this.height]);
+    startWrite(view: Views.View) {
+        Plena.forceRender()
+        this.projectionSave = view.getProjection();
+        this.lastView = view;
+        view.setProjection([this.x, this.x + this.width, this.y, this.y + this.height]);
+        view.view()
         this.frame.startRenderTo();
     }
 
     stopWrite() {
         Plena.forceRender();
         this.frame.stopRenderTo();
-        Plena.setProjection(this.projectionSave)
+        this.lastView.setProjection(this.projectionSave)
+        this.lastView.view();
     }
 
     getTexture(): WebGLTexture {
@@ -809,7 +813,6 @@ class Font {
     }
 
     getStroke(): string {
-        console.log(this.textStroke)
         return this.textStroke;
     }
 

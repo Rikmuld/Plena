@@ -4,7 +4,7 @@ abstract class Grix {
     protected drawer = new Render();
     protected customeShader: Shader;
 
-    protected isFinal: boolean;
+    protected isFinal: boolean = false;
     private childs = new Queue<GrixC>();
 
     protected width: number;
@@ -222,7 +222,7 @@ abstract class TexturedGrix extends Grix {
     }
 
     getShader(): Shader {
-        return !this.customeShader ? Plena.getBasicShader(Plena.ShaderType.TEXTURE) : this.customeShader;
+        return !this.customeShader ? Shader.getShader(Shader.TEXTURE) : this.customeShader;
     }
 
     isLoaded(): boolean {
@@ -313,12 +313,12 @@ class WritableGrix extends ImgGrix {
         this.texture = tex.getImg();
     }
 
-    startWrite() {
+    startWrite(view: Views.View) {
         if (this.color) {
             this.oldColor = Plena.getCurrCol();
             Plena.setColor(this.color);
         }
-        this.writable.startWrite();
+        this.writable.startWrite(view);
     }
 
     endWrite() {
@@ -431,7 +431,7 @@ class SpriteGrix extends TexturedGrix {
         else this.defaultImg = img;
 
         this.anime = null;
-        this.defaultAnime = null;
+        if (!this.isFinal) this.defaultAnime = null;
         return this;
     }
     activeAnime(anime: string): SpriteGrix {
@@ -444,7 +444,7 @@ class SpriteGrix extends TexturedGrix {
         else this.defaultAnime = anime;
 
         this.img = null;
-        this.defaultImg = null;
+        if (!this.isFinal) this.defaultImg = null;
         return this;
     }
     scaleToSize(width: number, height: number) {
@@ -680,7 +680,7 @@ class ShapeGrix extends Grix {
     }
 
     getShader(): Shader {
-        return !this.customeShader ? Plena.getBasicShader(Plena.ShaderType.COLOR) : this.customeShader;
+        return !this.customeShader ? Shader.getShader(Shader.COLOR) : this.customeShader;
     }
 
     setColor(color: Col): ShapeGrix {

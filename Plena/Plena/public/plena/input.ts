@@ -3,7 +3,7 @@
  */
 //context disable add
 namespace Mouse {
-    type ButtonEventEx = (x: number, y: number, event: MouseEvent) => any
+    type ButtonEventEx = (event: MouseEvent) => any
     type ButtonEvent = (event: MouseEvent) => any
     type EventMap = DeepTreeMap<number, ButtonEventEx>
 
@@ -100,15 +100,15 @@ namespace Mouse {
     /**
      * Get the current x position of the mouse
      */
-    export function getX() {
-        return Plena.mapX(mouseX, true)
+    export function getX(view: Views.View) {
+        return view.mapX(mouseX, true)
     }
     
     /**
      * Get the current y position of the mouse
      */
-    export function getY() {
-        return Plena.mapY(mouseY, true)
+    export function getY(view: Views.View) {
+        return view.mapY(mouseY, true)
     }
 
     /**
@@ -144,16 +144,13 @@ namespace Mouse {
     }
 
     function triggerButtons(collection: EventMap, button: number, event: MouseEvent) {
-        let mX = getX();
-        let mY = getY();
-
         if (collection.contains(button)) {
             let calls = collection.itterator(button)
-            for (let call of calls) call(mX, mY, event)
+            for (let call of calls) call(event)
         }
 
         let calls2 = collection.itterator(-1)
-        for (let call of calls2) call(mX, mY, event)
+        for (let call of calls2) call(event)
     }
 
     /**

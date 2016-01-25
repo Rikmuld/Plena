@@ -15,16 +15,10 @@ module Plena {
     export var width: number;
     export var height: number;
 
-    var colorShader: Shader;
-    var textureShader: Shader;
-
     var spriteManager: Manager;
-
-    var camera: Camera;
-    var projection: Vec4;
     
-    var canvasX: number;
-    var canvasY: number;
+    export var canvasX: number;
+    export var canvasY: number;
 
     var totalQueue: number = 0;
 
@@ -80,14 +74,11 @@ module Plena {
         Keyboard.enable();
         Mouse.enable();
 
-        colorShader = createShader(ShaderType.COLOR)
-        textureShader = createShader(ShaderType.TEXTURE)
-
-        changeProjection(0, width, height, 0)
+        Shader.initBasicShaders();
 
         spriteManager = createManager();
-        spriteManager.addShader(colorShader);
-        spriteManager.addShader(textureShader);
+        spriteManager.addShader(Shader.getShader(Shader.COLOR));
+        spriteManager.addShader(Shader.getShader(Shader.TEXTURE));
 
         renderLp = renderLoop;
         updateLp = updateLoop;
@@ -109,6 +100,7 @@ module Plena {
         if (queue == 0) {
             if (Assets.hasError()) log(`Assets loading finished with errors`)
             else log(`Assets loading finished without error`)
+            lastTick = Date.now();
             looper()
         }
     }
@@ -120,73 +112,12 @@ module Plena {
     export function suppresLog() {
         doLog = false;
     }
-
-    export function getWidth():number {
-        return mapX(width);
-    }
-    export function getHeight(): number {
-        return mapY(height);
-    }
-
-    export function mapX(x: number, canvas?:boolean): number {
-        let l = projection[0];
-        let r = projection[1];
-
-        return l + (Math.abs(r - l) / width) * (x - (canvas?canvasX:0))
-    }
-
-    export function mapY(y: number, canvas?:boolean): number {
-        let t = projection[3];
-        let b = projection[2];
-
-        return t + (Math.abs(b - t) / height) * (y - (canvas ? canvasY : 0));
-    }
-   
-    export function getProjection():Vec4 {
-        return projection;
-    }
-    export function bindCameraTo(entity: Entity) {
-        if (camera == null) camera = new Camera(entity);
-        else camera.bindTo(entity);
-    }
-    export function changeCamera(camera:Camera) {
-        camera = camera;
-    }
-    export function getCamera(): Camera {
-        return camera;
-    }
     export function setColor(col: Col) {
         currCol = col;
         col.clearcolor();
     }
     export function getCurrCol(): Col {
         return currCol;
-    }
-    export function fixedResolutionH(height:number) {
-        changeProjection(height * (window.innerWidth / window.innerHeight), height)
-    }
-    export function fixedResolutionW(width: number) {
-        changeProjection(width, width * (window.innerHeight / window.innerWidth))
-    }
-    export function changeProjection(left: number, bottom: number);
-    export function changeProjection(left: number, right: number, bottom: number, top: number);
-    export function changeProjection(left: number, right: number, bottom?: number, top?: number) {
-        if (typeof bottom == 'number') {
-            projection = [left, right, bottom, top];
-        } else {
-            projection = [0, left, right, 0];
-        }
-
-        setProjection(projection)
-    }
-
-    export function setProjection(proj: Vec4){
-        let ortho = Matrix4.ortho(proj[0], proj[1], proj[2], proj[3]);
-
-        colorShader.bind();
-        colorShader.getMatHandler().setProjectionMatrix(ortho);
-        textureShader.bind();
-        textureShader.getMatHandler().setProjectionMatrix(ortho);
     }
 
     function looper() {
@@ -196,8 +127,6 @@ module Plena {
         var delta = tick - lastTick;
         lastTick = tick;
 
-        if (camera != null) camera.update();
-
         renderLp(delta);
         updateLp(delta);
         spriteManager.render();
@@ -206,43 +135,6 @@ module Plena {
 
     export function forceRender() {
         spriteManager.render();
-    }
-
-    export function getBasicShader(typ: ShaderType): Shader {
-        switch (typ) {
-            case ShaderType.COLOR: return colorShader;
-            case ShaderType.TEXTURE: return textureShader;
-        }
-    }
-
-    export enum ShaderType { COLOR, TEXTURE }
-
-    export function createShader(typ: ShaderType): Shader {
-        var shad: Shader;
-        if (typ == ShaderType.COLOR) {
-            shad = new Shader("plenaColorShader", {
-                "projectionMatrix": Shader.Uniforms.PROJECTION_MATRIX,
-                "viewMatrix": Shader.Uniforms.VIEW_MATRIX,
-                "modelMatrix": Shader.Uniforms.MODEL_MATRIX,
-                "color": Shader.Uniforms.COLOR
-            }, Shader.Shaders.COLOR_V, Shader.Shaders.COLOR_F);
-        } else {
-            shad = new Shader("plenaTextureShader", {
-                "projectionMatrix": Shader.Uniforms.PROJECTION_MATRIX,
-                "viewMatrix": Shader.Uniforms.VIEW_MATRIX,
-                "modelMatrix": Shader.Uniforms.MODEL_MATRIX,
-                "UVMatrix": Shader.Uniforms.UV_MATRIX,
-                "color": Shader.Uniforms.COLOR
-            }, Shader.Shaders.TEX_V, Shader.Shaders.TEX_F);
-            shad.getMatHandler().setUVMatrix(Matrix4.identity());
-            shad.setVec4(Shader.Uniforms.COLOR, Color.White.white(1).vec())
-        }
-
-        shad.getMatHandler().setModelMatrix(Matrix4.identity());
-        shad.getMatHandler().setProjectionMatrix(Matrix4.identity());
-        shad.getMatHandler().setViewMatrix(Matrix4.identity());
-
-        return shad;
     }
 
     export function manager(): Manager {

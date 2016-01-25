@@ -13,6 +13,7 @@
     constructor(id: string, shaderVars: {}, name: string);
     constructor(id: string, shaderVars: {}, p2: string, p3?: string) {
         this.id = id;
+        Shader.addShader(this, id)
 
         var fragmentShader, vertexShader;
         if (typeof p3 == 'undefined') {
@@ -132,6 +133,58 @@
 }
 
 namespace Shader {
+    export const COLOR = "plenaColorShader"
+    export const TEXTURE = "plenaTextureShader"
+
+    var shaders = new TreeMap<string, Shader>(STRING_COMPARE);
+
+    export function initBasicShaders() {
+        createBasicShader(ShaderType.COLOR, COLOR);
+        createBasicShader(ShaderType.TEXTURE, TEXTURE);
+    }
+
+    export function getBasicShaders():Shader[] {
+        return [shaders.apply(COLOR), shaders.apply(TEXTURE)]
+    }
+
+    export function addShader(shader: Shader, id: string) {
+        shaders.put(id, shader);
+    }
+
+    export function getShader(id: string): Shader {
+        return shaders.apply(id);
+    }
+
+    export enum ShaderType { COLOR, TEXTURE }
+
+    export function createBasicShader(type: ShaderType, id:string): Shader {
+        var shad: Shader;
+        if (type == ShaderType.COLOR) {
+            shad = new Shader(id, {
+                "projectionMatrix": Shader.Uniforms.PROJECTION_MATRIX,
+                "viewMatrix": Shader.Uniforms.VIEW_MATRIX,
+                "modelMatrix": Shader.Uniforms.MODEL_MATRIX,
+                "color": Shader.Uniforms.COLOR
+            }, Shader.Shaders.COLOR_V, Shader.Shaders.COLOR_F);
+        } else if (type == ShaderType.TEXTURE) {
+            shad = new Shader(id, {
+                "projectionMatrix": Shader.Uniforms.PROJECTION_MATRIX,
+                "viewMatrix": Shader.Uniforms.VIEW_MATRIX,
+                "modelMatrix": Shader.Uniforms.MODEL_MATRIX,
+                "UVMatrix": Shader.Uniforms.UV_MATRIX,
+                "color": Shader.Uniforms.COLOR
+            }, Shader.Shaders.TEX_V, Shader.Shaders.TEX_F);
+            shad.getMatHandler().setUVMatrix(Matrix4.identity());
+            shad.setVec4(Shader.Uniforms.COLOR, Color.White.white(1).vec())
+        } else return null;
+
+        shad.getMatHandler().setModelMatrix(Matrix4.identity());
+        shad.getMatHandler().setProjectionMatrix(Matrix4.identity());
+        shad.getMatHandler().setViewMatrix(Matrix4.identity());
+
+        return shad;
+    }
+
     export namespace Uniforms {
         export const
             PROJECTION_MATRIX: number = 100,
@@ -249,8 +302,6 @@ class Render {
         if (!this.verts) Plena.log("You cannot populate a renderer twice!")
         else {
             this.shader = shader;
-
-            console.log(this.verts, this.uv, this.indieces)
 
             this.addVertexes(this.verts);
             if (this.uv.length > 0) this.addUVCoords(this.uv);
