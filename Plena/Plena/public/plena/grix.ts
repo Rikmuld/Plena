@@ -740,15 +740,29 @@ class ShapeGrix extends Grix {
         return this;
     }
 
-    ellipse(radiusX: number, radiusY: number, parts: number = 35, x: number = 0, y:number = 0): ShapeGrix {
+    ellipse(radiusX: number, radiusY: number, x: number = 0, y: number = 0, index: number = 0, center: boolean = true, parts: number = 35): ShapeGrix {
+        var coords = center? [x + radiusX, y + radiusY] : [];
+        var indicies = center ? [0] : [];
+        if (center) this.indiece += 1;
+
+        for (var i = 0; i < parts + 1; i++) {
+            var angle = i * ((Math.PI * 2) / parts);
+            coords.push(x + radiusX + Math.cos(angle) * radiusX);
+            coords.push(y + radiusY + Math.sin(angle) * radiusY);
+            indicies.push(i + this.indiece);
+        }
+        this.drawer.pushVerts(coords);
+        this.drawer.pushIndices(index, indicies);
+        this.setMaxMin(x - radiusX, x + radiusX, y - radiusX, y + radiusX)
+        this.indiece += parts + 1
         return this;
     }
 
-    circle(radius: number, parts: number = 35, x:number = 0, y:number = 0): ShapeGrix {
-        return this.ellipse(radius, radius, parts);
+    circle(radius: number, x: number = 0, y: number = 0, index: number = 0, center: boolean = true, parts: number = 35): ShapeGrix {
+        return this.ellipse(radius, radius, x, y, index, center, parts);
     }
-    polygon(radius: number, corners: number): ShapeGrix {
-        return this.circle(radius, corners);
+    polygon(radius: number, corners: number, x: number = 0, y: number = 0, index: number = 0, center: boolean = true): ShapeGrix {
+        return this.circle(radius, x, y, index, center, corners);
     }
 
     drawmode(mode: number, index: number = 0): ShapeGrix {
