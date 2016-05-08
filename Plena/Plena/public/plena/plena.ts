@@ -11,6 +11,7 @@ module Plena {
     var lastTick:number;
     var doLog: boolean = true;
     var currCol: Col = Color.White.WHITE;
+    var view: Views.View
 
     export var width: number;
     export var height: number;
@@ -83,8 +84,9 @@ module Plena {
         renderLp = renderLoop;
         updateLp = updateLoop;
 
-        lastTick = Date.now();
+        view = Views.createView()
 
+        lastTick = Date.now();
         setupFunc();
 
         totalQueue = Assets.getQueue();
@@ -127,10 +129,16 @@ module Plena {
         var delta = tick - lastTick;
         lastTick = tick;
 
+        view.view();
+
         renderLp(delta);
         updateLp(delta);
         spriteManager.render();
         requestAnimationFrame(looper);
+    }
+
+    export function getDefaultView(): Views.View {
+        return view
     }
 
     export function forceRender() {

@@ -131,6 +131,22 @@ class Color {
 }
 
 namespace Color {
+    export function mkColor(r: number, g: number, b: number): Color;
+    export function mkColor(color: Vec): Color;
+    export function mkColor(hex: string): Color;
+    export function mkColor(par1: number | Vec | string, g?: number, b?: number): Color {
+        if (typeof par1 == "number") return new Color(par1 as number, g, b)
+        else if (typeof par1 == "string") return new Color(par1 as string)
+        else return new Color(par1 as Vec)
+    }
+
+    export function mkAlphaColor(r: number, g: number, b: number, a: number): AColor;
+    export function mkAlphaColor(color: Color, a: number): AColor;
+    export function mkAlphaColor(r: Color | number, g: number, b?: number, a?: number): AColor {
+        if (typeof a == "number") return new AColor(r as number, g, b, a)
+        else return new AColor(r as Color, g)
+    }
+   
     export namespace Pink {
 		export const PINK = new Color(255, 192, 203);
 		export function pink(a: number = 1):AColor {

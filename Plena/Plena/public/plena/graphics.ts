@@ -174,13 +174,13 @@ namespace Shader {
                 "UVMatrix": Shader.Uniforms.UV_MATRIX,
                 "color": Shader.Uniforms.COLOR
             }, Shader.Shaders.TEX_V, Shader.Shaders.TEX_F);
-            shad.getMatHandler().setUVMatrix(Matrix4.identity());
+            shad.getMatHandler().setUVMatrix(Matrix.Mat4.identity());
             shad.setVec4(Shader.Uniforms.COLOR, Color.White.white(1).vec())
         } else return null;
 
-        shad.getMatHandler().setModelMatrix(Matrix4.identity());
-        shad.getMatHandler().setProjectionMatrix(Matrix4.identity());
-        shad.getMatHandler().setViewMatrix(Matrix4.identity());
+        shad.getMatHandler().setModelMatrix(Matrix.Mat4.identity());
+        shad.getMatHandler().setProjectionMatrix(Matrix.Mat4.identity());
+        shad.getMatHandler().setViewMatrix(Matrix.Mat4.identity());
 
         return shad;
     }
@@ -251,8 +251,8 @@ namespace Shader {
 
 class MatrixHandler {
     private shader: Shader;
-    private projMat = Matrix4.identity();
-    private viewMat = Matrix4.identity();
+    private projMat = Matrix.Mat4.identity();
+    private viewMat = Matrix.Mat4.identity();
 
     constructor(shader: Shader) {
         this.shader = shader;
