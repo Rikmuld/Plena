@@ -5,6 +5,10 @@
 //loader at start option
 //different shader/projection for hud no view
 //mess, redo, also manager system redo
+//kill manager
+//setup canvas stuff different
+//resize option (defualt for full window)
+//views: scaledRes should affect scaling on grixes, not projection matrix (so there is no scaling twice)
 module Plena {
     var renderLp, updateLp: (delta: number) => void;
     var canvas: HTMLCanvasElement;
