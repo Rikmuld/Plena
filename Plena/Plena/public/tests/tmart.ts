@@ -1,24 +1,26 @@
 ﻿const WIDTH = 61
 const HEIGHT = 31
-const SCALE = 1
+const SCALE = 12
+const SPEED = 1
 
 const GRAY = Color.mkColor(180, 180, 180)
 const BLACK = Color.mkColor(80, 80, 80)
 const BLUE = Color.mkColor(48, 128, 240)
 
-let run = -1000
+let run = -1700 * SCALE
 let animation: number = 0
 
 let cross: ShapeGrix
 let cell: ShapeGrix
 let fade: ShapeGrix
+let drawnGrid: WritableGrix
 
 module Cell {
     module SideTriangles {
         export let rulesValue = [0, 0, 1, 1, 1, 1, 0, 0]
 
         export function getInitalLine(i: number, j: number): number {
-            if (i % 17 == 0) return 1
+            if (i == 0) return 1
             return 0
         }
     }
@@ -27,7 +29,7 @@ module Cell {
         export let rulesValue = [0, 1, 0, 1, 1, 0, 1, 0]
 
         export function getInitalLine(i: number, j: number): number {
-            if (i == 30) return 1
+            if (i == Math.floor((WIDTH * SCALE - 1) / 2)) return 1
             return 0
         }
     }
@@ -36,7 +38,7 @@ module Cell {
         export let rulesValue = [1, 1, 1, 1, 1, 0, 1, 0]
 
         export function getInitalLine(i: number, j: number): number {
-            if (i == 30) return 1
+            if (i == Math.floor((WIDTH * SCALE - 1) / 2)) return 1
             return 0
         }
     }
@@ -45,7 +47,7 @@ module Cell {
         export let rulesValue = [0, 0, 0, 1, 1, 1, 1, 0]
 
         export function getInitalLine(i: number, j: number): number {
-            if (i == 30) return 1
+            if (i == Math.floor((WIDTH * SCALE - 1) / 2)) return 1
             return 0
         }
     }
@@ -70,7 +72,7 @@ module Cell {
     export function calculateCell(i: number, j: number):number {
         var rul1 = (i - 1) >= 0 ? getCell(i - 1, j - 1) : 0
         var rul2 = getCell(i, j - 1)
-        var rul3 = (i + 1) <= (WIDTH - 1) ? getCell(i + 1, j - 1) : 0
+        var rul3 = (i + 1) <= (WIDTH * SCALE - 1) ? getCell(i + 1, j - 1) : 0
 
         for (let rule = 0; rule < rules.length; rule++) {
             let value = getRule(rule)
@@ -81,10 +83,10 @@ module Cell {
     }
 
     export function getCell(i: number, j: number): number {
-        return cells[i + j * WIDTH]
+        return cells[i + j * WIDTH * SCALE]
     }
     export function setCell(i: number, j: number, value: number) {
-        cells[i + j * WIDTH] = value
+        cells[i + j * WIDTH * SCALE] = value
     }
     export function getRule(i: number): number[] {
         return rules[i]
@@ -102,16 +104,28 @@ module IPlena {
         cross = Grix.shape().setColor(Color.mkColor(40, 40, 40)).drawmode(gl.LINES)
         setupGrid()
         cross.populate()
+
+        drawnGrid = Grix.writable(Assets.mkWritableImg(1920, 1080))
+        drawnGrid.startWrite(Plena.getDefaultView())
+        renderGrid()
+        drawnGrid.endWrite()
     }
 
     export function update(delta: number) {
         if (run < 0) run += delta
-        else animation += ((animation < (2500 + 1720)) ? 1 : 5) * delta
+        else animation += SPEED * delta
     }
 
     export function render(delta: number) {
-        renderGrid()
+        drawnGrid.render()
         renderRules()
+
+        Plena.forceRender()
+
+        fade.moveTo(200, 155+(12/SCALE))
+        if (animation > 2500) fade.move(0, (animation - 2500) / 2)
+        fade.render()
+        
 
         Plena.forceRender()
         cross.render()
@@ -127,19 +141,11 @@ Plena.init(IPlena.setup, IPlena.render, IPlena.update, 1920, 1080, GRAY)
 
 function renderGrid() {
     cell.setPivotMove(0.5, 0.5)
+    cell.scaleTo(1 / SCALE, 1 / SCALE)
 
-    let maxI = Math.min(WIDTH, Math.floor(((animation - 2500) % 1720)) / (1720/WIDTH))
-    let minJ = Math.min(HEIGHT, Math.floor((animation - 2500) / 1720))
-    for (let i = 0; i < maxI; i++) {
-        for (let j = minJ; j < Math.min(HEIGHT, minJ + 1); j++) {
-            setXY(i, j, cell)
-            cell.setColor(getBulbColor(i, j))
-            cell.render()
-        }
-    }
-    for (let i = 0; i < WIDTH; i++) {
-        for (let j = 0; j < minJ; j++) {
-            setXY(i, j, cell)
+    for (let i = 0; i < WIDTH * SCALE; i++) {
+        for (let j = 0; j < HEIGHT * SCALE; j++) {
+            setXY(i, j, false, cell)
             cell.setColor(getBulbColor(i, j))
             cell.render()
         }
@@ -147,11 +153,13 @@ function renderGrid() {
 }
 
 function renderRules() {
+    cell.setPivotMove(0.5, 0.5)
+    cell.scaleTo(1, 1)
     for (let i = 0; i < 3; i++) {
         for (let j = 0; j < 24; j++) {
             let index = Math.floor(j / 3)
 
-            setXY(i - 7, j, cell)
+            setXY(i - 7, j, true, cell)
             if (j % 3 == 0) {
                 cell.setColor(getColor(Cell.getRule(index)[i]))
                 cell.render()
@@ -164,11 +172,12 @@ function renderRules() {
 }
 
 function setupGrid() {
-    for (let j = 0; j < HEIGHT; j++) {
-        for (let i = 0; i < WIDTH; i++) {
+    for (let j = 0; j < HEIGHT * SCALE; j++) {
+        for (let i = 0; i < WIDTH * SCALE; i++) {
             Cell.setCell(i, j, (j == 0) ? Cell.getInitalLine(i, j) : Cell.calculateCell(i, j))
-            createCross(i + 7, j)
-
+            if (SCALE == 1) {
+                createCross(i + 7, j)
+            }
             if (isRuleCoord(i, j)) createCross(i, j)
         }
     }
@@ -183,8 +192,8 @@ function createCross(i: number, j: number) {
     cross.line(xOffset, 5 + yOsset, 10 + xOffset, 5 + yOsset)
     cross.line(5 + xOffset, yOsset, 5 + xOffset, 10 + yOsset)
 }
-function setXY(x: number, y: number, grix: ShapeGrix) {
-    grix.moveTo(280 + x * 25, 155 + y * 25)
+function setXY(x: number, y: number, rule:boolean, grix: ShapeGrix) {
+    grix.moveTo(280 + x * (rule? 25:(25 / SCALE)), 155 + y * (rule?25:(25 / SCALE)))
 }
 function getColor(i: number): Col {
     return i == 0 ? BLACK : BLUE
