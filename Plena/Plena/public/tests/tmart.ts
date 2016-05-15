@@ -4,7 +4,7 @@ const SCALE = 1
 
 const GRAY = Color.mkColor(180, 180, 180)
 const BLACK = Color.mkColor(80, 80, 80)
-const BLUE = Color.mkColor(48, 128, 240)
+const BLUE = Color.mkColor(48, 128, 255)
 
 let run = -1000
 let animation: number = 0
