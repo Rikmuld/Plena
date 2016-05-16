@@ -1,13 +1,14 @@
 ﻿const WIDTH = 61
 const HEIGHT = 31
-const SCALE = 12
-const SPEED = 1
+const SCALE = 1
+const SPEED = 0.5
 
-const GRAY = Color.mkColor(180, 180, 180)
-const BLACK = Color.mkColor(80, 80, 80)
-const BLUE = Color.mkColor(48, 128, 255)
+const GRAY = Color.mkColor(20, 20, 20)
+const BLACK = Color.mkColor(200, 200, 200)
+const BLUE = Color.mkColor(40, 80, 240)
+const CROSS = Color.mkColor(50, 50, 50)
 
-let run = -1700 * SCALE
+let run = -800 * SCALE
 let animation: number = 0
 
 let cross: ShapeGrix
@@ -101,7 +102,7 @@ module IPlena {
         fade = Grix.shape().quad(1920, 1080).setColor(GRAY).populate()
         cell = Grix.shape().quad(25, 25).populate()
 
-        cross = Grix.shape().setColor(Color.mkColor(40, 40, 40)).drawmode(gl.LINES)
+        cross = Grix.shape().setColor(CROSS).drawmode(gl.LINES)
         setupGrid()
         cross.populate()
 
@@ -113,7 +114,7 @@ module IPlena {
 
     export function update(delta: number) {
         if (run < 0) run += delta
-        else animation += SPEED * delta
+        else animation += (animation>2500? SPEED:SPEED*2) * delta
     }
 
     export function render(delta: number) {
@@ -122,10 +123,24 @@ module IPlena {
 
         Plena.forceRender()
 
-        fade.moveTo(200, 155+(12/SCALE))
-        if (animation > 2500) fade.move(0, (animation - 2500) / 2)
+        fade.moveTo(200, 155 + (12 / SCALE))
+        let blob = 25 / SCALE
+
+        let animationFade1 = (animation - 2500) / 10
+        let animationFade2 = (((animation - 2500) / 10) % blob) * WIDTH * SCALE
+
+        if (animation > 2500) {
+            fade.move(0, Math.floor(animationFade1 / blob) * blob + blob)
+        }
+
         fade.render()
-        
+
+        if (animation > 2500) {
+            fade.clean()
+            fade.moveTo(200, 155 + (12 / SCALE))
+            fade.move(animationFade2, Math.floor(animationFade1 / blob) * blob)
+            fade.render()
+        }
 
         Plena.forceRender()
         cross.render()
