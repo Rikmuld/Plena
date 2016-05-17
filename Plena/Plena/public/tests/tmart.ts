@@ -1,6 +1,6 @@
-﻿const WIDTH = 61
-const HEIGHT = 31
-const SCALE = 1
+﻿const WIDTH = 63
+const HEIGHT = 32
+const SCALE = 15
 const SPEED = 0.5
 
 const GRAY = Color.mkColor(20, 20, 20)
@@ -17,41 +17,44 @@ let fade: ShapeGrix
 let drawnGrid: WritableGrix
 
 module Cell {
-    module SideTriangles {
-        export let rulesValue = [0, 0, 1, 1, 1, 1, 0, 0]
+    class Progression {
+        rulesValue: number[]
 
-        export function getInitalLine(i: number, j: number): number {
-            if (i == 0) return 1
-            return 0
+        constructor(rules: number[]) {
+            this.rulesValue = rules
         }
-    }
 
-    module FractTriangle {
-        export let rulesValue = [0, 1, 0, 1, 1, 0, 1, 0]
-
-        export function getInitalLine(i: number, j: number): number {
+        getInitalLine(i: number, j: number): number {
             if (i == Math.floor((WIDTH * SCALE - 1) / 2)) return 1
             return 0
         }
     }
 
-    module FullTriangle {
-        export let rulesValue = [1, 1, 1, 1, 1, 0, 1, 0]
+    class SpacedProgression extends Progression {
+        spacing: number
 
-        export function getInitalLine(i: number, j: number): number {
-            if (i == Math.floor((WIDTH * SCALE - 1) / 2)) return 1
+        constructor(rules: number[], spacing: number) {
+            super(rules)
+            this.spacing = spacing
+        }
+
+        getInitalLine(i: number, j: number): number {
+            if (i % this.spacing == 0) return 1
             return 0
         }
     }
 
-    module MessyTriangle {
-        export let rulesValue = [0, 0, 0, 1, 1, 1, 1, 0]
-
-        export function getInitalLine(i: number, j: number): number {
-            if (i == Math.floor((WIDTH * SCALE - 1) / 2)) return 1
-            return 0
+    class FreeProgression extends Progression {
+        constructor(rules: number[], line: (i:number, j:number)=>number) {
+            super(rules)
+            this.getInitalLine = line
         }
     }
+
+    let sideTriangles = new Progression([0, 0, 1, 1, 1, 1, 0, 0])
+    let fractTriangle = new Progression([0, 1, 0, 1, 1, 0, 1, 0])
+    let fullTriangle = new Progression([1, 1, 1, 1, 1, 0, 1, 0])
+    let messyTriangle = new SpacedProgression([0, 0, 0, 1, 1, 1, 1, 0], 15)
 
     let rules = [
         [1, 1, 1],
@@ -65,7 +68,7 @@ module Cell {
     ]
 
     let cells: number[] = []
-    let config = FractTriangle //defines the progression
+    let config: Progression = fractTriangle //defines the progression
 
     export function getInitalLine(i: number, j: number): number {
         return config.getInitalLine(i, j)
@@ -214,5 +217,5 @@ function getColor(i: number): Col {
     return i == 0 ? BLACK : BLUE
 }
 function getBulbColor(i: number, j: number): Col {
-    return getColor(Cell.getCell(i, j))
+    return Cell.getCell(i, j) == 0 ? BLACK : Color.mkColor(Math.cos(i/j)*255, Math.sin(i/j)*255, Math.tan(i/j)*255)
 }
