@@ -1,11 +1,11 @@
 ﻿const WIDTH = 63
 const HEIGHT = 32
-const SCALE = 15
-const SPEED = 0.5
+const SCALE = 8
+const SPEED = 0.75
 
-const GRAY = Color.mkColor(20, 20, 20)
-const BLACK = Color.mkColor(200, 200, 200)
-const BLUE = Color.mkColor(40, 80, 240)
+const GRAY = Color.mkColor(240, 240, 240)
+const BLACK = Color.mkColor(100, 100, 100)
+const BLUE = Color.mkColor(50, 255, 220)
 const CROSS = Color.mkColor(50, 50, 50)
 
 let run = -800 * SCALE
@@ -51,10 +51,10 @@ module Cell {
         }
     }
 
-    let sideTriangles = new Progression([0, 0, 1, 1, 1, 1, 0, 0])
+    let sideTriangles = new SpacedProgression([0, 0, 1, 1, 1, 1, 0, 0], 17)
     let fractTriangle = new Progression([0, 1, 0, 1, 1, 0, 1, 0])
     let fullTriangle = new Progression([1, 1, 1, 1, 1, 0, 1, 0])
-    let messyTriangle = new SpacedProgression([0, 0, 0, 1, 1, 1, 1, 0], 15)
+    let messyTriangle = new SpacedProgression([0, 0, 0, 1, 1, 1, 1, 0], 17)
 
     let rules = [
         [1, 1, 1],
@@ -68,7 +68,7 @@ module Cell {
     ]
 
     let cells: number[] = []
-    let config: Progression = fractTriangle //defines the progression
+    let config: Progression = sideTriangles //defines the progression
 
     export function getInitalLine(i: number, j: number): number {
         return config.getInitalLine(i, j)
@@ -217,5 +217,6 @@ function getColor(i: number): Col {
     return i == 0 ? BLACK : BLUE
 }
 function getBulbColor(i: number, j: number): Col {
+    //return getColor(Cell.getCell(i, j))
     return Cell.getCell(i, j) == 0 ? BLACK : Color.mkColor(Math.cos(i/j)*255, Math.sin(i/j)*255, Math.tan(i/j)*255)
 }
