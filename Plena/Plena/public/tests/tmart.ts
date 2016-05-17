@@ -1,7 +1,7 @@
 ﻿const WIDTH = 63
 const HEIGHT = 32
-const SCALE = 15
-const SPEED = 0.5
+const SCALE = 1
+const SPEED = 0.6
 
 const GRAY = Color.mkColor(20, 20, 20)
 const BLACK = Color.mkColor(200, 200, 200)
@@ -54,7 +54,7 @@ module Cell {
     let sideTriangles = new Progression([0, 0, 1, 1, 1, 1, 0, 0])
     let fractTriangle = new Progression([0, 1, 0, 1, 1, 0, 1, 0])
     let fullTriangle = new Progression([1, 1, 1, 1, 1, 0, 1, 0])
-    let messyTriangle = new SpacedProgression([0, 0, 0, 1, 1, 1, 1, 0], 15)
+    let messyTriangle = new Progression([0, 0, 0, 1, 1, 1, 1, 0])
 
     let rules = [
         [1, 1, 1],
@@ -217,5 +217,5 @@ function getColor(i: number): Col {
     return i == 0 ? BLACK : BLUE
 }
 function getBulbColor(i: number, j: number): Col {
-    return Cell.getCell(i, j) == 0 ? BLACK : Color.mkColor(Math.cos(i/j)*255, Math.sin(i/j)*255, Math.tan(i/j)*255)
+    return getColor(Cell.getCell(i, j))
 }
