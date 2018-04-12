@@ -1,4 +1,5 @@
-﻿//fix render function
+﻿// easy to use graphics build on top of graphics.ts, quite a mess however
+
 abstract class Grix {
     protected mode = gl.TRIANGLES;
     protected drawer = new Render();

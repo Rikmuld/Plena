@@ -14,6 +14,7 @@
                 .addAnimImgs(cats[1], 3 * 32, 5 * 32, 32, 32, 3)
                 .addAnimImgs(cats[2], 6 * 32, 5 * 32, 32, 32, 3)
                 .addAnimImgs(cats[3], 9 * 32, 5 * 32, 32, 32, 3))
+                
         Keyboard.addPressedEvent(switchMovement, Keyboard.KEY_SPACE)
         Keyboard.addPressedEvent(switchTopDown, Keyboard.KEY_Q)
 
